@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastWings - Super Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            margin: 5px 10px;
+            transition: all 0.3s ease;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .main-content {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stat-card .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+        .table-responsive {
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .btn-action {
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+        }
+        .status-badge {
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0">
+                <div class="sidebar p-3">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-wings fa-2x text-white mb-2"></i>
+                        <h5 class="text-white">FastWings</h5>
+                        <small class="text-white-50">Super Admin</small>
+                    </div>
+                    
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="#" data-section="dashboard">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a class="nav-link" href="#" data-section="branches">
+                            <i class="fas fa-store me-2"></i>Sucursales
+                        </a>
+                        <a class="nav-link" href="#" data-section="users">
+                            <i class="fas fa-users me-2"></i>Usuarios
+                        </a>
+                        <a class="nav-link" href="#" data-section="orders">
+                            <i class="fas fa-shopping-cart me-2"></i>Pedidos
+                        </a>
+                        <a class="nav-link" href="#" data-section="billing">
+                            <i class="fas fa-file-invoice me-2"></i>Facturación
+                        </a>
+                        <a class="nav-link" href="#" data-section="settings">
+                            <i class="fas fa-cog me-2"></i>Configuración
+                        </a>
+                        <hr class="text-white-50">
+                        <a class="nav-link" href="#" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 px-0">
+                <div class="main-content p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 id="pageTitle">Dashboard</h2>
+                            <p class="text-muted mb-0">Bienvenido, <span id="userName">Admin</span></p>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-success me-2">Super Admin</span>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user me-2"></i>Perfil
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" id="profileBtn">
+                                        <i class="fas fa-user-edit me-2"></i>Editar Perfil
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" id="changePasswordBtn">
+                                        <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert Container -->
+                    <div id="alertContainer"></div>
+
+                    <!-- Dashboard Section -->
+                    <div id="dashboardSection">
+                        <!-- Stats Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="totalBranches">0</h3>
+                                                <p class="mb-0">Sucursales</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-store"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="totalUsers">0</h3>
+                                                <p class="mb-0">Usuarios</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-users"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="totalOrders">0</h3>
+                                                <p class="mb-0">Pedidos</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-shopping-cart"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="totalRevenue">$0</h3>
+                                                <p class="mb-0">Ingresos</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-dollar-sign"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Orders -->
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-clock me-2"></i>Pedidos Recientes
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Cliente</th>
+                                                <th>Sucursal</th>
+                                                <th>Total</th>
+                                                <th>Estado</th>
+                                                <th>Fecha</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recentOrdersTable">
+                                            <!-- Orders will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Other Sections (initially hidden) -->
+                    <div id="branchesSection" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3>Gestión de Sucursales</h3>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#branchModal">
+                                <i class="fas fa-plus me-2"></i>Nueva Sucursal
+                            </button>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nombre</th>
+                                                <th>Dirección</th>
+                                                <th>Teléfono</th>
+                                                <th>WhatsApp</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="branchesTable">
+                                            <!-- Branches will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="usersSection" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3>Gestión de Usuarios</h3>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal">
+                                <i class="fas fa-plus me-2"></i>Nuevo Usuario
+                            </button>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nombre</th>
+                                                <th>Email</th>
+                                                <th>Rol</th>
+                                                <th>Sucursal</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTable">
+                                            <!-- Users will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="ordersSection" style="display: none;">
+                        <h3>Gestión de Pedidos</h3>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Cliente</th>
+                                                <th>Sucursal</th>
+                                                <th>Items</th>
+                                                <th>Total</th>
+                                                <th>Estado</th>
+                                                <th>Fecha</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ordersTable">
+                                            <!-- Orders will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="billingSection" style="display: none;">
+                        <h3>Facturación</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Generar Facturas</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Genera facturas para pedidos confirmados y envíalas por WhatsApp.</p>
+                                        <button class="btn btn-success" id="generateInvoicesBtn">
+                                            <i class="fas fa-file-pdf me-2"></i>Generar Facturas
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Estadísticas de Facturación</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="billingStats">
+                                            <!-- Stats will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="settingsSection" style="display: none;">
+                        <h3>Configuración del Sistema</h3>
+                        <div class="card">
+                            <div class="card-body">
+                                <p>Configuración general del sistema FastWings.</p>
+                                <!-- Add settings form here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Branch Modal -->
+    <div class="modal fade" id="branchModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="branchModalTitle">Nueva Sucursal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="branchForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="branchId">
+                        <div class="mb-3">
+                            <label for="branchName" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="branchName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="branchAddress" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="branchAddress" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="branchPhone" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="branchPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="branchWhatsApp" class="form-label">Número WhatsApp</label>
+                            <input type="text" class="form-control" id="branchWhatsApp" placeholder="+573001234567">
+                        </div>
+                        <div class="mb-3">
+                            <label for="branchLogo" class="form-label">Logo</label>
+                            <input type="file" class="form-control" id="branchLogo" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalTitle">Nuevo Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="userForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label for="userName" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="userName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="userEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPassword" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="userPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userRole" class="form-label">Rol</label>
+                            <select class="form-select" id="userRole" required>
+                                <option value="">Seleccionar rol</option>
+                                <option value="admin">Admin</option>
+                                <option value="branch_user">Usuario de Sucursal</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userBranch" class="form-label">Sucursal</label>
+                            <select class="form-select" id="userBranch" required>
+                                <option value="">Seleccionar sucursal</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Definir las clases JavaScript
+        class AuthService {
+            constructor() {
+                this.baseURL = 'http://localhost:4000/api';
+                this.token = localStorage.getItem('token');
+                this.user = JSON.parse(localStorage.getItem('user'));
+            }
+
+            async login(email, password) {
+                try {
+                    const response = await fetch(`${this.baseURL}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error en el login');
+                    }
+
+                    this.token = data.token;
+                    this.user = data.user;
+                    localStorage.setItem('token', this.token);
+                    localStorage.setItem('user', JSON.stringify(this.user));
+
+                    return data;
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            logout() {
+                this.token = null;
+                this.user = null;
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            }
+
+            isAuthenticated() {
+                return !!this.token;
+            }
+
+            getUser() {
+                return this.user;
+            }
+
+            getToken() {
+                return this.token;
+            }
+
+            redirectToDashboard() {
+                if (!this.user) return;
+                
+                switch (this.user.role) {
+                    case 'super_admin':
+                        window.location.href = 'super.html';
+                        break;
+                    case 'admin':
+                        window.location.href = 'admin.html';
+                        break;
+                    case 'branch_user':
+                        window.location.href = 'branch.html';
+                        break;
+                    default:
+                        window.location.href = 'admin.html';
+                }
+            }
+        }
+
+        class SuperAdminDashboard {
+            constructor() {
+                this.authService = new AuthService();
+                this.currentSection = 'dashboard';
+                this.init();
+            }
+
+            init() {
+                if (!this.authService.isAuthenticated()) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                const user = this.authService.getUser();
+                if (user.role !== 'super_admin') {
+                    window.location.href = 'admin.html';
+                    return;
+                }
+
+                this.setupUserInfo();
+                this.bindEvents();
+                this.loadDashboard();
+            }
+
+            setupUserInfo() {
+                const user = this.authService.getUser();
+                document.getElementById('userName').textContent = user.name;
+            }
+
+            bindEvents() {
+                // Navigation
+                document.querySelectorAll('[data-section]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showSection(link.dataset.section);
+                    });
+                });
+
+                // Logout
+                document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.authService.logout();
+                });
+
+                // Forms
+                document.getElementById('branchForm').addEventListener('submit', (e) => this.handleBranchSubmit(e));
+                document.getElementById('userForm').addEventListener('submit', (e) => this.handleUserSubmit(e));
+
+                // Buttons
+                document.getElementById('generateInvoicesBtn').addEventListener('click', () => this.generateInvoices());
+            }
+
+            showSection(sectionName) {
+                // Hide all sections
+                document.querySelectorAll('[id$="Section"]').forEach(el => el.style.display = 'none');
+                
+                // Show selected section
+                document.getElementById(sectionName + 'Section').style.display = 'block';
+                
+                // Update navigation
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+                
+                // Update page title
+                document.getElementById('pageTitle').textContent = this.getSectionTitle(sectionName);
+                
+                // Load section data
+                this.loadSectionData(sectionName);
+                
+                this.currentSection = sectionName;
+            }
+
+            getSectionTitle(sectionName) {
+                const titles = {
+                    dashboard: 'Dashboard',
+                    branches: 'Sucursales',
+                    users: 'Usuarios',
+                    orders: 'Pedidos',
+                    billing: 'Facturación',
+                    settings: 'Configuración'
+                };
+                return titles[sectionName] || 'Dashboard';
+            }
+
+            async loadSectionData(sectionName) {
+                switch (sectionName) {
+                    case 'dashboard':
+                        await this.loadDashboard();
+                        break;
+                    case 'branches':
+                        await this.loadBranches();
+                        break;
+                    case 'users':
+                        await this.loadUsers();
+                        break;
+                    case 'orders':
+                        await this.loadOrders();
+                        break;
+                    case 'billing':
+                        await this.loadBillingStats();
+                        break;
+                }
+            }
+
+            async loadDashboard() {
+                try {
+                    const response = await this.makeRequest('/admin/dashboard/stats');
+                    this.updateDashboardStats(response);
+                } catch (error) {
+                    this.showAlert('Error cargando dashboard: ' + error.message, 'danger');
+                }
+            }
+
+            updateDashboardStats(data) {
+                document.getElementById('totalBranches').textContent = data.stats.totalBranches;
+                document.getElementById('totalUsers').textContent = data.stats.totalUsers;
+                document.getElementById('totalOrders').textContent = data.stats.totalOrders;
+                document.getElementById('totalRevenue').textContent = `$${data.stats.totalRevenue || 0}`;
+
+                // Update recent orders table
+                this.updateRecentOrdersTable(data.recentOrders);
+            }
+
+            updateRecentOrdersTable(orders) {
+                const tbody = document.getElementById('recentOrdersTable');
+                tbody.innerHTML = '';
+
+                orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>#${order.id}</td>
+                        <td>${order.customer_name}</td>
+                        <td>${order.branch_name}</td>
+                        <td>$${order.total_amount}</td>
+                        <td><span class="badge status-badge bg-${this.getStatusColor(order.status)}">${this.getStatusText(order.status)}</span></td>
+                        <td>${new Date(order.created_at).toLocaleDateString('es-CO')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.viewOrder(${order.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            getStatusColor(status) {
+                const colors = {
+                    pending: 'warning',
+                    confirmed: 'info',
+                    preparing: 'primary',
+                    ready: 'success',
+                    delivered: 'secondary',
+                    cancelled: 'danger'
+                };
+                return colors[status] || 'secondary';
+            }
+
+            getStatusText(status) {
+                const texts = {
+                    pending: 'Pendiente',
+                    confirmed: 'Confirmado',
+                    preparing: 'Preparando',
+                    ready: 'Listo',
+                    delivered: 'Entregado',
+                    cancelled: 'Cancelado'
+                };
+                return texts[status] || status;
+            }
+
+            async loadBranches() {
+                try {
+                    const response = await this.makeRequest('/admin/branches');
+                    this.updateBranchesTable(response.branches);
+                } catch (error) {
+                    this.showAlert('Error cargando sucursales: ' + error.message, 'danger');
+                }
+            }
+
+            updateBranchesTable(branches) {
+                const tbody = document.getElementById('branchesTable');
+                tbody.innerHTML = '';
+
+                branches.forEach(branch => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${branch.name}</td>
+                        <td>${branch.address || '-'}</td>
+                        <td>${branch.phone || '-'}</td>
+                        <td>${branch.order_number || '-'}</td>
+                        <td>
+                            <span class="badge bg-${branch.is_active ? 'success' : 'danger'}">
+                                ${branch.is_active ? 'Activa' : 'Inactiva'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.editBranch(${branch.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger btn-action" onclick="dashboard.deleteBranch(${branch.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            async loadUsers() {
+                try {
+                    const response = await this.makeRequest('/admin/users');
+                    this.updateUsersTable(response.users);
+                    this.loadBranchesForUserForm();
+                } catch (error) {
+                    this.showAlert('Error cargando usuarios: ' + error.message, 'danger');
+                }
+            }
+
+            updateUsersTable(users) {
+                const tbody = document.getElementById('usersTable');
+                tbody.innerHTML = '';
+
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>
+                            <span class="badge bg-${this.getRoleColor(user.role)}">
+                                ${this.getRoleText(user.role)}
+                            </span>
+                        </td>
+                        <td>${user.branch_name || '-'}</td>
+                        <td>
+                            <span class="badge bg-${user.is_active ? 'success' : 'danger'}">
+                                ${user.is_active ? 'Activo' : 'Inactivo'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.editUser(${user.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            getRoleColor(role) {
+                const colors = {
+                    super_admin: 'danger',
+                    admin: 'primary',
+                    branch_user: 'info'
+                };
+                return colors[role] || 'secondary';
+            }
+
+            getRoleText(role) {
+                const texts = {
+                    super_admin: 'Super Admin',
+                    admin: 'Admin',
+                    branch_user: 'Usuario Sucursal'
+                };
+                return texts[role] || role;
+            }
+
+            async loadOrders() {
+                try {
+                    const response = await this.makeRequest('/orders');
+                    this.updateOrdersTable(response.orders);
+                } catch (error) {
+                    this.showAlert('Error cargando pedidos: ' + error.message, 'danger');
+                }
+            }
+
+            updateOrdersTable(orders) {
+                const tbody = document.getElementById('ordersTable');
+                tbody.innerHTML = '';
+
+                orders.forEach(order => {
+                    const items = JSON.parse(order.items);
+                    const itemsText = items.map(item => `${item.quantity}x ${item.name}`).join(', ');
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>#${order.id}</td>
+                        <td>${order.customer_name}</td>
+                        <td>${order.branch_name}</td>
+                        <td>${itemsText}</td>
+                        <td>$${order.total_amount}</td>
+                        <td>
+                            <span class="badge status-badge bg-${this.getStatusColor(order.status)}">
+                                ${this.getStatusText(order.status)}
+                            </span>
+                        </td>
+                        <td>${new Date(order.created_at).toLocaleDateString('es-CO')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.viewOrder(${order.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success btn-action" onclick="dashboard.generateInvoice(${order.id})">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            async loadBillingStats() {
+                try {
+                    const response = await this.makeRequest('/billing/stats');
+                    this.updateBillingStats(response.stats);
+                } catch (error) {
+                    this.showAlert('Error cargando estadísticas de facturación: ' + error.message, 'danger');
+                }
+            }
+
+            updateBillingStats(stats) {
+                const container = document.getElementById('billingStats');
+                container.innerHTML = `
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Total Pedidos</h6>
+                            <h4>${stats.totalOrders}</h4>
+                        </div>
+                        <div class="col-6">
+                            <h6>Pedidos Facturados</h6>
+                            <h4>${stats.invoicedOrders}</h4>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <h6>Pendientes de Facturación</h6>
+                            <h4>${stats.pendingInvoicing}</h4>
+                        </div>
+                        <div class="col-6">
+                            <h6>Ingresos Facturados</h6>
+                            <h4>$${stats.invoicedRevenue || 0}</h4>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async handleBranchSubmit(e) {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                formData.append('name', document.getElementById('branchName').value);
+                formData.append('address', document.getElementById('branchAddress').value);
+                formData.append('phone', document.getElementById('branchPhone').value);
+                formData.append('order_number', document.getElementById('branchWhatsApp').value);
+                
+                const logoFile = document.getElementById('branchLogo').files[0];
+                if (logoFile) {
+                    formData.append('logo', logoFile);
+                }
+
+                try {
+                    const branchId = document.getElementById('branchId').value;
+                    const url = branchId ? `/admin/branches/${branchId}` : '/admin/branches';
+                    const method = branchId ? 'PUT' : 'POST';
+                    
+                    await this.makeRequest(url, {
+                        method,
+                        body: formData
+                    });
+
+                    this.showAlert('Sucursal guardada exitosamente', 'success');
+                    document.getElementById('branchForm').reset();
+                    document.getElementById('branchId').value = '';
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('branchModal'));
+                    modal.hide();
+                    
+                    // Reload branches
+                    await this.loadBranches();
+                    
+                } catch (error) {
+                    this.showAlert('Error guardando sucursal: ' + error.message, 'danger');
+                }
+            }
+
+            async handleUserSubmit(e) {
+                e.preventDefault();
+                
+                const userData = {
+                    name: document.getElementById('userName').value,
+                    email: document.getElementById('userEmail').value,
+                    password: document.getElementById('userPassword').value,
+                    role: document.getElementById('userRole').value,
+                    branch_id: parseInt(document.getElementById('userBranch').value)
+                };
+
+                try {
+                    await this.makeRequest('/admin/users', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(userData)
+                    });
+
+                    this.showAlert('Usuario creado exitosamente', 'success');
+                    document.getElementById('userForm').reset();
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+                    modal.hide();
+                    
+                    // Reload users
+                    await this.loadUsers();
+                    
+                } catch (error) {
+                    this.showAlert('Error creando usuario: ' + error.message, 'danger');
+                }
+            }
+
+            async loadBranchesForUserForm() {
+                try {
+                    const response = await this.makeRequest('/admin/branches');
+                    const select = document.getElementById('userBranch');
+                    select.innerHTML = '<option value="">Seleccionar sucursal</option>';
+                    
+                    response.branches.forEach(branch => {
+                        const option = document.createElement('option');
+                        option.value = branch.id;
+                        option.textContent = branch.name;
+                        select.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error cargando sucursales para formulario:', error);
+                }
+            }
+
+            async generateInvoices() {
+                try {
+                    const response = await this.makeRequest('/billing/send/1', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            caption: 'Tu factura está lista! Gracias por tu compra.'
+                        })
+                    });
+
+                    this.showAlert(`Facturas procesadas: ${response.ordersProcessed}`, 'success');
+                    
+                } catch (error) {
+                    this.showAlert('Error generando facturas: ' + error.message, 'danger');
+                }
+            }
+
+            async makeRequest(endpoint, options = {}) {
+                const url = `http://localhost:4000/api${endpoint}`;
+                const config = {
+                    headers: {
+                        'Authorization': `Bearer ${this.authService.getToken()}`,
+                        ...options.headers
+                    },
+                    ...options
+                };
+
+                const response = await fetch(url, config);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error en la petición');
+                }
+
+                return data;
+            }
+
+            showAlert(message, type) {
+                const container = document.getElementById('alertContainer');
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                container.innerHTML = '';
+                container.appendChild(alert);
+
+                // Auto-dismiss después de 5 segundos
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+
+            // Placeholder methods for future implementation
+            editBranch(id) {
+                console.log('Edit branch:', id);
+                this.showAlert('Función en desarrollo', 'info');
+            }
+
+            deleteBranch(id) {
+                if (confirm('¿Estás seguro de que quieres eliminar esta sucursal?')) {
+                    console.log('Delete branch:', id);
+                    this.showAlert('Función en desarrollo', 'info');
+                }
+            }
+
+            editUser(id) {
+                console.log('Edit user:', id);
+                this.showAlert('Función en desarrollo', 'info');
+            }
+
+            viewOrder(id) {
+                console.log('View order:', id);
+                this.showAlert('Función en desarrollo', 'info');
+            }
+
+            generateInvoice(id) {
+                console.log('Generate invoice:', id);
+                this.showAlert('Función en desarrollo', 'info');
+            }
+        }
+
+        // Initialize dashboard
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new SuperAdminDashboard();
+        });
+    </script>
+</body>
+</html>

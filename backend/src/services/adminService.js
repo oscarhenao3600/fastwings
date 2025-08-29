@@ -1,0 +1,10 @@
+
+const fs = require('fs'); const path = require('path'); const {sendEmailStub} = require('./mailService'); const USERS_FILE = path.join(__dirname,'../../data/users.json'); const BRANCHES_FILE = path.join(__dirname,'../../data/branches.json');
+if(!fs.existsSync(BRANCHES_FILE)) fs.writeFileSync(BRANCHES_FILE, JSON.stringify([]));
+if(!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, JSON.stringify([]));
+async function createBranch(payload,file, user){ const branches = JSON.parse(fs.readFileSync(BRANCHES_FILE)); const id = Date.now().toString(); const branch = { id, name: payload.name, address: payload.address, system_number: payload.system_number, order_number: payload.order_number, logo: file? file.path:null, paid_up_to: payload.paid_up_to||null, owner: user.email }; branches.push(branch); fs.writeFileSync(BRANCHES_FILE, JSON.stringify(branches,null,2)); await sendEmailStub(process.env.ADMIN_EMAIL_NOTIFICATION, `Nueva sucursal creada: ${branch.name}`, JSON.stringify(branch,null,2)); return branch; }
+async function deleteBranch(id){ const branches = JSON.parse(fs.readFileSync(BRANCHES_FILE)).filter(b=>b.id!==id); fs.writeFileSync(BRANCHES_FILE, JSON.stringify(branches,null,2)); return true; }
+async function listBranches(){ return JSON.parse(fs.readFileSync(BRANCHES_FILE)); }
+async function uploadMenuFile(id,file){ return {ok:true, file:file.path}; }
+async function createAdmin(payload){ const users = JSON.parse(fs.readFileSync(USERS_FILE)); const max = parseInt(process.env.MAX_ADMINS_FREE||'5',10); const adminsCount = users.filter(u=>u.role==='admin').length; if(adminsCount >= max) throw new Error('Límite de admins alcanzado. Pagar para agregar más.'); const bcrypt = require('bcryptjs'); const id = Date.now().toString(); const user = { id, email: payload.email, password: bcrypt.hashSync(payload.password||'password123',10), role: payload.role||'admin' }; users.push(user); fs.writeFileSync(USERS_FILE, JSON.stringify(users,null,2)); return {id:user.id, email:user.email}; }
+module.exports = {createBranch, deleteBranch, listBranches, uploadMenuFile, createAdmin};

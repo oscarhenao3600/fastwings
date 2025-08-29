@@ -1,0 +1,1 @@
+FastWings v4 (ES) - Scaffold. Reemplazar stubs por integraciones reales en producción.

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastWings - Usuario Sucursal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            margin: 5px 10px;
+            transition: all 0.3s ease;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .main-content {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+            color: white;
+        }
+        .stat-card .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+        .order-card {
+            border-left: 4px solid #17a2b8;
+            margin-bottom: 1rem;
+        }
+        .order-card.pending {
+            border-left-color: #ffc107;
+        }
+        .order-card.confirmed {
+            border-left-color: #17a2b8;
+        }
+        .order-card.preparing {
+            border-left-color: #007bff;
+        }
+        .order-card.ready {
+            border-left-color: #28a745;
+        }
+        .order-card.delivered {
+            border-left-color: #6c757d;
+        }
+        .order-card.cancelled {
+            border-left-color: #dc3545;
+        }
+        .status-badge {
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+        }
+        .btn-action {
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0">
+                <div class="sidebar p-3">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-store fa-2x text-white mb-2"></i>
+                        <h5 class="text-white">FastWings</h5>
+                        <small class="text-white-50">Usuario Sucursal</small>
+                    </div>
+                    
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="#" data-section="dashboard">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a class="nav-link" href="#" data-section="orders">
+                            <i class="fas fa-shopping-cart me-2"></i>Mis Pedidos
+                        </a>
+                        <a class="nav-link" href="#" data-section="profile">
+                            <i class="fas fa-user me-2"></i>Mi Perfil
+                        </a>
+                        <hr class="text-white-50">
+                        <a class="nav-link" href="#" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 px-0">
+                <div class="main-content p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 id="pageTitle">Dashboard</h2>
+                            <p class="text-muted mb-0">
+                                Sucursal: <span id="branchName">-</span> | 
+                                Usuario: <span id="userName">Usuario</span>
+                            </p>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-info me-2">Usuario Sucursal</span>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user me-2"></i>Perfil
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" id="profileBtn">
+                                        <i class="fas fa-user-edit me-2"></i>Editar Perfil
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" id="changePasswordBtn">
+                                        <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert Container -->
+                    <div id="alertContainer"></div>
+
+                    <!-- Dashboard Section -->
+                    <div id="dashboardSection">
+                        <!-- Stats Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="totalOrders">0</h3>
+                                                <p class="mb-0">Total Pedidos</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-shopping-cart"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="pendingOrders">0</h3>
+                                                <p class="mb-0">Pendientes</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-clock"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="readyOrders">0</h3>
+                                                <p class="mb-0">Listos</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stat-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 id="totalRevenue">$0</h3>
+                                                <p class="mb-0">Ingresos</p>
+                                            </div>
+                                            <div class="stat-icon">
+                                                <i class="fas fa-dollar-sign"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Orders -->
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-clock me-2"></i>Pedidos Recientes
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="recentOrdersContainer">
+                                    <!-- Orders will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orders Section -->
+                    <div id="ordersSection" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3>Mis Pedidos</h3>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary active" data-filter="all">Todos</button>
+                                <button type="button" class="btn btn-outline-warning" data-filter="pending">Pendientes</button>
+                                <button type="button" class="btn btn-outline-info" data-filter="confirmed">Confirmados</button>
+                                <button type="button" class="btn btn-outline-primary" data-filter="preparing">Preparando</button>
+                                <button type="button" class="btn btn-outline-success" data-filter="ready">Listos</button>
+                                <button type="button" class="btn btn-outline-secondary" data-filter="delivered">Entregados</button>
+                            </div>
+                        </div>
+                        
+                        <div id="ordersContainer">
+                            <!-- Orders will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Profile Section -->
+                    <div id="profileSection" style="display: none;">
+                        <h3>Mi Perfil</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Información Personal</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="profileForm">
+                                            <div class="mb-3">
+                                                <label for="profileName" class="form-label">Nombre</label>
+                                                <input type="text" class="form-control" id="profileName" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="profileEmail" class="form-label">Email</label>
+                                                <input type="email" class="form-control" id="profileEmail" required readonly>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-2"></i>Actualizar Perfil
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Cambiar Contraseña</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="passwordForm">
+                                            <div class="mb-3">
+                                                <label for="currentPassword" class="form-label">Contraseña Actual</label>
+                                                <input type="password" class="form-control" id="currentPassword" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="newPassword" class="form-label">Nueva Contraseña</label>
+                                                <input type="password" class="form-control" id="newPassword" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="confirmPassword" class="form-label">Confirmar Contraseña</label>
+                                                <input type="password" class="form-control" id="confirmPassword" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-warning">
+                                                <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Detail Modal -->
+    <div class="modal fade" id="orderModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalle del Pedido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="orderModalBody">
+                    <!-- Order details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-success" id="updateStatusBtn">
+                        <i class="fas fa-save me-2"></i>Actualizar Estado
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class BranchUserDashboard {
+            constructor() {
+                this.authService = new AuthService();
+                this.currentSection = 'dashboard';
+                this.currentFilter = 'all';
+                this.orders = [];
+                this.init();
+            }
+
+            init() {
+                if (!this.authService.isAuthenticated()) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                const user = this.authService.getUser();
+                if (user.role !== 'branch_user') {
+                    window.location.href = 'admin.html';
+                    return;
+                }
+
+                this.setupUserInfo();
+                this.bindEvents();
+                this.loadDashboard();
+            }
+
+            setupUserInfo() {
+                const user = this.authService.getUser();
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('branchName').textContent = user.branch_name || 'N/A';
+                
+                // Set profile form values
+                document.getElementById('profileName').value = user.name;
+                document.getElementById('profileEmail').value = user.email;
+            }
+
+            bindEvents() {
+                // Navigation
+                document.querySelectorAll('[data-section]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showSection(link.dataset.section);
+                    });
+                });
+
+                // Logout
+                document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.authService.logout();
+                });
+
+                // Order filters
+                document.querySelectorAll('[data-filter]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentFilter = e.target.dataset.filter;
+                        this.filterOrders();
+                    });
+                });
+
+                // Forms
+                document.getElementById('profileForm').addEventListener('submit', (e) => this.handleProfileSubmit(e));
+                document.getElementById('passwordForm').addEventListener('submit', (e) => this.handlePasswordSubmit(e));
+
+                // Buttons
+                document.getElementById('updateStatusBtn').addEventListener('click', () => this.updateOrderStatus());
+            }
+
+            showSection(sectionName) {
+                // Hide all sections
+                document.querySelectorAll('[id$="Section"]').forEach(el => el.style.display = 'none');
+                
+                // Show selected section
+                document.getElementById(sectionName + 'Section').style.display = 'block';
+                
+                // Update navigation
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+                
+                // Update page title
+                document.getElementById('pageTitle').textContent = this.getSectionTitle(sectionName);
+                
+                // Load section data
+                this.loadSectionData(sectionName);
+                
+                this.currentSection = sectionName;
+            }
+
+            getSectionTitle(sectionName) {
+                const titles = {
+                    dashboard: 'Dashboard',
+                    orders: 'Mis Pedidos',
+                    profile: 'Mi Perfil'
+                };
+                return titles[sectionName] || 'Dashboard';
+            }
+
+            async loadSectionData(sectionName) {
+                switch (sectionName) {
+                    case 'dashboard':
+                        await this.loadDashboard();
+                        break;
+                    case 'orders':
+                        await this.loadOrders();
+                        break;
+                }
+            }
+
+            async loadDashboard() {
+                try {
+                    const response = await this.makeRequest('/orders/dashboard/stats');
+                    this.updateDashboardStats(response.stats);
+                    
+                    // Load recent orders
+                    await this.loadOrders();
+                    this.updateRecentOrders();
+                } catch (error) {
+                    this.showAlert('Error cargando dashboard: ' + error.message, 'danger');
+                }
+            }
+
+            updateDashboardStats(stats) {
+                document.getElementById('totalOrders').textContent = stats.totalOrders;
+                document.getElementById('pendingOrders').textContent = stats.pendingOrders;
+                document.getElementById('readyOrders').textContent = stats.readyOrders;
+                document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue || 0}`;
+            }
+
+            async loadOrders() {
+                try {
+                    const response = await this.makeRequest('/orders');
+                    this.orders = response.orders;
+                    this.filterOrders();
+                } catch (error) {
+                    this.showAlert('Error cargando pedidos: ' + error.message, 'danger');
+                }
+            }
+
+            filterOrders() {
+                let filteredOrders = this.orders;
+                
+                if (this.currentFilter !== 'all') {
+                    filteredOrders = this.orders.filter(order => order.status === this.currentFilter);
+                }
+
+                if (this.currentSection === 'dashboard') {
+                    this.updateRecentOrders(filteredOrders.slice(0, 5));
+                } else {
+                    this.updateOrdersContainer(filteredOrders);
+                }
+            }
+
+            updateRecentOrders(orders = null) {
+                const container = document.getElementById('recentOrdersContainer');
+                const ordersToShow = orders || this.orders.slice(0, 5);
+                
+                if (ordersToShow.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No hay pedidos recientes</p>';
+                    return;
+                }
+
+                container.innerHTML = ordersToShow.map(order => this.createOrderCard(order)).join('');
+            }
+
+            updateOrdersContainer(orders) {
+                const container = document.getElementById('ordersContainer');
+                
+                if (orders.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No hay pedidos con este filtro</p>';
+                    return;
+                }
+
+                container.innerHTML = orders.map(order => this.createOrderCard(order)).join('');
+            }
+
+            createOrderCard(order) {
+                const items = JSON.parse(order.items);
+                const itemsText = items.map(item => `${item.quantity}x ${item.name}`).join(', ');
+                const statusColor = this.getStatusColor(order.status);
+                const statusText = this.getStatusText(order.status);
+                
+                return `
+                    <div class="card order-card ${order.status}">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <h6 class="mb-1">#${order.id}</h6>
+                                    <small class="text-muted">${new Date(order.created_at).toLocaleDateString('es-CO')}</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <h6 class="mb-1">${order.customer_name}</h6>
+                                    <small class="text-muted">${order.customer_phone}</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-1"><strong>Items:</strong></p>
+                                    <small class="text-muted">${itemsText}</small>
+                                </div>
+                                <div class="col-md-2">
+                                    <h6 class="mb-1">$${order.total_amount}</h6>
+                                    <span class="badge status-badge bg-${statusColor}">${statusText}</span>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <button class="btn btn-sm btn-outline-primary btn-action me-2" onclick="dashboard.viewOrder(${order.id})">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-success btn-action" onclick="dashboard.updateOrderStatus(${order.id})">
+                                        <i class="fas fa-edit"></i> Estado
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getStatusColor(status) {
+                const colors = {
+                    pending: 'warning',
+                    confirmed: 'info',
+                    preparing: 'primary',
+                    ready: 'success',
+                    delivered: 'secondary',
+                    cancelled: 'danger'
+                };
+                return colors[status] || 'secondary';
+            }
+
+            getStatusText(status) {
+                const texts = {
+                    pending: 'Pendiente',
+                    confirmed: 'Confirmado',
+                    preparing: 'Preparando',
+                    ready: 'Listo',
+                    delivered: 'Entregado',
+                    cancelled: 'Cancelado'
+                };
+                return texts[status] || status;
+            }
+
+            async handleProfileSubmit(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('profileName').value;
+                
+                try {
+                    await this.makeRequest('/auth/profile', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name })
+                    });
+
+                    this.showAlert('Perfil actualizado exitosamente', 'success');
+                    
+                } catch (error) {
+                    this.showAlert('Error actualizando perfil: ' + error.message, 'danger');
+                }
+            }
+
+            async handlePasswordSubmit(e) {
+                e.preventDefault();
+                
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (newPassword !== confirmPassword) {
+                    this.showAlert('Las contraseñas no coinciden', 'danger');
+                    return;
+                }
+                
+                try {
+                    await this.makeRequest('/auth/change-password', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ currentPassword, newPassword })
+                    });
+
+                    this.showAlert('Contraseña cambiada exitosamente', 'success');
+                    document.getElementById('passwordForm').reset();
+                    
+                } catch (error) {
+                    this.showAlert('Error cambiando contraseña: ' + error.message, 'danger');
+                }
+            }
+
+            async viewOrder(orderId) {
+                try {
+                    const response = await this.makeRequest(`/orders/${orderId}`);
+                    this.showOrderModal(response.order);
+                } catch (error) {
+                    this.showAlert('Error cargando pedido: ' + error.message, 'danger');
+                }
+            }
+
+            showOrderModal(order) {
+                const items = JSON.parse(order.items);
+                const itemsHtml = items.map(item => `
+                    <tr>
+                        <td>${item.quantity}</td>
+                        <td>${item.name}</td>
+                        <td>$${item.price}</td>
+                        <td>$${item.subtotal}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('orderModalBody').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Información del Cliente</h6>
+                            <p><strong>Nombre:</strong> ${order.customer_name}</p>
+                            <p><strong>Teléfono:</strong> ${order.customer_phone}</p>
+                            <p><strong>Estado:</strong> 
+                                <span class="badge bg-${this.getStatusColor(order.status)}">
+                                    ${this.getStatusText(order.status)}
+                                </span>
+                            </p>
+                            <p><strong>Fecha:</strong> ${new Date(order.created_at).toLocaleString('es-CO')}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Items del Pedido</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Cant.</th>
+                                            <th>Item</th>
+                                            <th>Precio</th>
+                                            <th>Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${itemsHtml}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="3">Total:</th>
+                                            <th>$${order.total_amount}</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    ${order.notes ? `<div class="mt-3"><strong>Notas:</strong> ${order.notes}</div>` : ''}
+                `;
+
+                const modal = new bootstrap.Modal(document.getElementById('orderModal'));
+                modal.show();
+            }
+
+            async updateOrderStatus(orderId) {
+                // TODO: Implement status update
+                this.showAlert('Función en desarrollo', 'info');
+            }
+
+            async makeRequest(endpoint, options = {}) {
+                const url = `http://localhost:4000/api${endpoint}`;
+                const config = {
+                    headers: {
+                        'Authorization': `Bearer ${this.authService.getToken()}`,
+                        ...options.headers
+                    },
+                    ...options
+                };
+
+                const response = await fetch(url, config);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error en la petición');
+                }
+
+                return data;
+            }
+
+            showAlert(message, type) {
+                const container = document.getElementById('alertContainer');
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                container.innerHTML = '';
+                container.appendChild(alert);
+
+                // Auto-dismiss después de 5 segundos
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Initialize dashboard
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new BranchUserDashboard();
+        });
+    </script>
+</body>
+</html>

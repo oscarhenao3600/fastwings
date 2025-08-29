@@ -1,0 +1,4 @@
+
+const { extractTextFromImage } = require('./ocrService');
+async function validateTransferReceipt(file, expectedAccount){ if(!file) return {valid:false, reason:'no file'}; try{ const text = await extractTextFromImage(file.path); const containsAccount = expectedAccount ? text.includes(expectedAccount) : false; const containsWordTransfer = /transferencia|transfer|dep[oó]sito/i.test(text); const ok = containsAccount || containsWordTransfer; return { valid: ok, reason: ok ? 'ocr_pass' : 'ocr_fail', ocr_text: text.slice(0,500) }; }catch(e){ const name = file.originalname || file.filename || ''; const ok = name.toLowerCase().includes('transfer') || (expectedAccount && name.includes(expectedAccount)); return { valid: ok, reason: ok ? 'filename_pass' : 'filename_fail' }; } }
+module.exports = { validateTransferReceipt };
