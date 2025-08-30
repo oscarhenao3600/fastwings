@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Auth - FastWings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-bug me-2"></i>Debug de Autenticación</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="authStatus">
+                            <div class="alert alert-info">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                Verificando estado de autenticación...
+                            </div>
+                        </div>
+                        
+                        <div id="loginForm" style="display: none;">
+                            <h5>Login</h5>
+                            <form id="loginFormElement">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" value="admin@fastwings.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="password" value="admin123" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Login</button>
+                            </form>
+                        </div>
+                        
+                        <div id="testSection" style="display: none;">
+                            <h5>Pruebas de API</h5>
+                            <div class="mb-3">
+                                <button class="btn btn-success me-2" onclick="testDashboard()">
+                                    <i class="fas fa-chart-bar me-1"></i>Test Dashboard
+                                </button>
+                                <button class="btn btn-info me-2" onclick="testWhatsApp()">
+                                    <i class="fas fa-whatsapp me-1"></i>Test WhatsApp
+                                </button>
+                                <button class="btn btn-warning" onclick="logout()">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                                </button>
+                            </div>
+                            <div id="testResults"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AuthService {
+            constructor() {
+                this.baseURL = 'http://localhost:4000/api';
+                this.token = localStorage.getItem('token');
+                this.user = JSON.parse(localStorage.getItem('user'));
+            }
+
+            async login(email, password) {
+                try {
+                    const response = await fetch(`${this.baseURL}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error en el login');
+                    }
+
+                    this.token = data.token;
+                    this.user = data.user;
+                    localStorage.setItem('token', this.token);
+                    localStorage.setItem('user', JSON.stringify(this.user));
+
+                    return data;
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            logout() {
+                this.token = null;
+                this.user = null;
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.reload();
+            }
+
+            isAuthenticated() {
+                return !!this.token;
+            }
+
+            getUser() {
+                return this.user;
+            }
+
+            getToken() {
+                return this.token;
+            }
+
+            async makeRequest(endpoint, options = {}) {
+                const url = `${this.baseURL}${endpoint}`;
+                const config = {
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        ...options.headers
+                    },
+                    ...options
+                };
+
+                const response = await fetch(url, config);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error en la petición');
+                }
+
+                return data;
+            }
+        }
+
+        const authService = new AuthService();
+
+        function updateAuthStatus() {
+            const authStatus = document.getElementById('authStatus');
+            const loginForm = document.getElementById('loginForm');
+            const testSection = document.getElementById('testSection');
+
+            if (authService.isAuthenticated()) {
+                const user = authService.getUser();
+                authStatus.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Autenticado</strong><br>
+                        Usuario: ${user.name}<br>
+                        Email: ${user.email}<br>
+                        Rol: ${user.role}<br>
+                        Token: ${authService.getToken().substring(0, 20)}...
+                    </div>
+                `;
+                loginForm.style.display = 'none';
+                testSection.style.display = 'block';
+            } else {
+                authStatus.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>No autenticado</strong><br>
+                        No hay token válido en localStorage
+                    </div>
+                `;
+                loginForm.style.display = 'block';
+                testSection.style.display = 'none';
+            }
+        }
+
+        async function testDashboard() {
+            try {
+                const result = await authService.makeRequest('/admin/dashboard/stats');
+                document.getElementById('testResults').innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Dashboard Stats:</strong><br>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Error Dashboard:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testWhatsApp() {
+            try {
+                const result = await authService.makeRequest('/branch-whatsapp/branches/status');
+                document.getElementById('testResults').innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>WhatsApp Status:</strong><br>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Error WhatsApp:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function logout() {
+            authService.logout();
+        }
+
+        // Event listeners
+        document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                await authService.login(email, password);
+                updateAuthStatus();
+            } catch (error) {
+                document.getElementById('authStatus').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>
+                        <strong>Error de login:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        });
+
+        // Inicializar
+        updateAuthStatus();
+    </script>
+</body>
+</html>
