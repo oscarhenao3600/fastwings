@@ -1,15 +1,23 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const db = require('../config/database');
+const mongoose = require('mongoose');
+const Branch = require('../models/Branch');
+const User = require('../models/User');
+const Order = require('../models/Order');
 
 async function seedSuperAdmin() {
   try {
     console.log('🌱 Iniciando seed de super admin...');
 
+    // Conectar a MongoDB
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fastwings';
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+
     // Verificar si ya existe un super admin
-    const existingSuperAdmin = await db('users')
-      .where('role', 'super_admin')
-      .first();
+    const existingSuperAdmin = await User.findOne({ role: 'super_admin' });
 
     if (existingSuperAdmin) {
       console.log('✅ Super admin ya existe, saltando seed...');
@@ -18,7 +26,7 @@ async function seedSuperAdmin() {
 
     // Crear sucursal principal
     console.log('🏪 Creando sucursal principal...');
-    const [branchId] = await db('branches').insert({
+    const branch = await Branch.create({
       name: 'Sucursal Principal',
       address: 'Calle Principal #123, Bogotá, Colombia',
       phone: '+57 1 234 5678',
@@ -27,29 +35,29 @@ async function seedSuperAdmin() {
       is_active: true
     });
 
-    console.log(`✅ Sucursal creada con ID: ${branchId}`);
+    console.log(`✅ Sucursal creada con ID: ${branch._id}`);
 
     // Crear super admin
     console.log('👑 Creando super admin...');
     const hashedPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD || 'admin123', 12);
     
-    const [userId] = await db('users').insert({
+    const user = await User.create({
       email: process.env.SUPER_ADMIN_EMAIL || 'admin@fastwings.com',
       password: hashedPassword,
       name: process.env.SUPER_ADMIN_NAME || 'Administrador Principal',
       role: 'super_admin',
-      branch_id: branchId,
+      branch_id: branch._id,
       is_active: true
     });
 
-    console.log(`✅ Super admin creado con ID: ${userId}`);
+    console.log(`✅ Super admin creado con ID: ${user._id}`);
 
     // Crear algunos pedidos de ejemplo
     console.log('📝 Creando pedidos de ejemplo...');
     
     const sampleOrders = [
       {
-        branch_id: branchId,
+        branch_id: branch._id,
         customer_name: 'Juan Pérez',
         customer_phone: '+573001234567',
         items: JSON.stringify([
@@ -62,7 +70,7 @@ async function seedSuperAdmin() {
         notes: 'Pedido de ejemplo para demostración'
       },
       {
-        branch_id: branchId,
+        branch_id: branch._id,
         customer_name: 'María García',
         customer_phone: '+573001234568',
         items: JSON.stringify([
@@ -75,9 +83,9 @@ async function seedSuperAdmin() {
       }
     ];
 
-    for (const order of sampleOrders) {
-      const [orderId] = await db('orders').insert(order);
-      console.log(`✅ Pedido de ejemplo creado con ID: ${orderId}`);
+    for (const orderData of sampleOrders) {
+      const order = await Order.create(orderData);
+      console.log(`✅ Pedido de ejemplo creado con ID: ${order._id}`);
     }
 
     console.log('🎉 Seed completado exitosamente!');
@@ -90,7 +98,7 @@ async function seedSuperAdmin() {
     console.error('❌ Error durante el seed:', error);
     process.exit(1);
   } finally {
-    await db.destroy();
+    await mongoose.connection.close();
   }
 }
 

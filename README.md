@@ -6,7 +6,7 @@
 ## ✨ Características Principales
 
 - **Backend completo** con Node.js + Express
-- **Base de datos** PostgreSQL con migraciones Knex
+- **Base de datos** MongoDB con Mongoose
 - **Frontend responsive** con Bootstrap 5
 - **Sistema de roles** (Super Admin, Admin, Usuario Sucursal)
 - **Gestión de sucursales** y usuarios
@@ -21,12 +21,12 @@
 fastwings_v4_es_whatsapp_invoice/
 ├── backend/                 # Servidor Node.js
 │   ├── src/
+│   │   ├── models/         # Modelos de MongoDB
 │   │   ├── routes/         # Rutas de la API
 │   │   ├── middlewares/    # Middlewares de autenticación
 │   │   ├── services/       # Servicios de negocio
 │   │   └── config/         # Configuración de BD
-│   ├── migrations/         # Migraciones de la base de datos
-│   └── uploads/            # Archivos subidos (logos, comprobantes)
+│   ├── uploads/            # Archivos subidos (logos, comprobantes)
 ├── frontend-admin/          # Panel de administración
 │   ├── index.html          # Login
 │   ├── super.html          # Dashboard Super Admin
@@ -39,7 +39,7 @@ fastwings_v4_es_whatsapp_invoice/
 
 ### 1. Prerrequisitos
 - Node.js 16+ 
-- PostgreSQL 12+
+- MongoDB 4.4+
 - npm o yarn
 
 ### 2. Clonar y configurar
@@ -50,24 +50,35 @@ cd fastwings_v4_es_whatsapp_invoice
 
 ### 3. Configurar Base de Datos
 ```bash
-# Crear base de datos PostgreSQL
-createdb fastwings
+# Instalar MongoDB (si no lo tienes)
+# Ubuntu/Debian:
+sudo apt-get install mongodb
 
-# Configurar variables de entorno
-cd backend
-copy env.example .env
-# Editar .env con tus credenciales de BD
+# macOS:
+brew install mongodb-community
+
+# Windows: Descargar desde mongodb.com
+
+# Iniciar MongoDB
+sudo systemctl start mongod  # Linux
+brew services start mongodb-community  # macOS
 ```
 
-### 4. Instalar dependencias y configurar BD
+### 4. Configurar variables de entorno
+```bash
+cd backend
+copy env.example .env
+# Editar .env con tus credenciales
+```
+
+### 5. Instalar dependencias y configurar BD
 ```bash
 cd backend
 npm install
-npm run migrate
 npm run seed
 ```
 
-### 5. Iniciar el sistema
+### 6. Iniciar el sistema
 ```bash
 # Terminal 1: Backend
 npm run dev
@@ -85,13 +96,8 @@ cd ../frontend-admin
 PORT=4000
 NODE_ENV=development
 
-# Base de Datos
-DB_TYPE=pg
-SQL_HOST=localhost
-SQL_PORT=5432
-SQL_USER=postgres
-SQL_PASSWORD=tu_password
-SQL_DATABASE=fastwings
+# Base de Datos MongoDB
+MONGODB_URI=mongodb://localhost:27017/fastwings
 
 # JWT
 JWT_SECRET=tu_jwt_secret_super_seguro_aqui_cambiar_en_produccion
@@ -103,10 +109,10 @@ SUPER_ADMIN_NAME=Administrador Principal
 ```
 
 ### Base de Datos
-El sistema crea automáticamente:
-- **Tabla `branches`**: Sucursales del negocio
-- **Tabla `users`**: Usuarios del sistema con roles
-- **Tabla `orders`**: Pedidos de los clientes
+El sistema crea automáticamente las siguientes colecciones en MongoDB:
+- **`branches`**: Sucursales del negocio
+- **`users`**: Usuarios del sistema con roles
+- **`orders`**: Pedidos de los clientes
 
 ## 👥 Roles y Permisos
 
@@ -217,7 +223,7 @@ HTTPS=true
 ```
 
 ### 2. Base de Datos
-- Usar PostgreSQL en servidor dedicado
+- Usar MongoDB en servidor dedicado
 - Configurar backups automáticos
 - Optimizar índices para producción
 
@@ -238,74 +244,13 @@ HTTPS=true
 
 #### 1. Error de Conexión a BD
 ```bash
-# Verificar que PostgreSQL esté corriendo
-pg_ctl status
+# Verificar que MongoDB esté corriendo
+mongo --version
 
 # Verificar credenciales en .env
 # Probar conexión manual
-psql -h localhost -U postgres -d fastwings
+mongo fastwings --eval "db.version()"
 ```
 
 #### 2. Error de Migraciones
-```bash
-# Revertir migraciones
-npx knex migrate:rollback --knexfile knexfile.js
-
-# Ejecutar migraciones desde cero
-npx knex migrate:latest --knexfile knexfile.js
 ```
-
-#### 3. Error de Permisos en Uploads
-```bash
-# Verificar permisos del directorio
-chmod 755 backend/uploads
-chown node:node backend/uploads
-```
-
-## 📚 Recursos Adicionales
-
-### Documentación
-- [Knex.js](http://knexjs.org/) - Query builder
-- [Express.js](https://expressjs.com/) - Framework web
-- [Bootstrap 5](https://getbootstrap.com/) - CSS framework
-- [PDFKit](https://pdfkit.org/) - Generación de PDFs
-
-### Herramientas Recomendadas
-- **Postman** - Testing de API
-- **pgAdmin** - Administración de PostgreSQL
-- **VS Code** - Editor de código
-- **Git** - Control de versiones
-
-## 🤝 Contribución
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
-
-## 📞 Soporte
-
-- **Email**: soporte@fastwings.com
-- **Documentación**: [Wiki del proyecto]
-- **Issues**: [GitHub Issues]
-
----
-
-## 🎉 ¡Listo para tu Presentación!
-
-Tu sistema FastWings v4 está completamente funcional con:
-
-✅ **Backend completo** con todas las APIs  
-✅ **Frontend responsive** con dashboards por rol  
-✅ **Base de datos** con migraciones y seed data  
-✅ **Sistema de autenticación** JWT  
-✅ **Gestión de pedidos** y facturación  
-✅ **Integración WhatsApp** simulada  
-✅ **Generación de PDFs** automática  
-
-**¡Perfecto para tu presentación de las 5pm!** 🚀

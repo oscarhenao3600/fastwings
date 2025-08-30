@@ -3,7 +3,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const db = require('../config/database');
+const User = require('../models/User');
+const Branch = require('../models/Branch');
 const { auth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -21,13 +22,11 @@ router.post('/login', [
 
     const { email, password } = req.body;
     
-    const user = await db('users')
-      .leftJoin('branches', 'users.branch_id', 'branches.id')
-      .where('users.email', email)
-      .select('users.*', 'branches.name as branch_name')
-      .first();
+    const user = await User.findOne({ email, is_active: true })
+      .populate('branch_id', 'name')
+      .lean();
 
-    if (!user || !user.is_active) {
+    if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
@@ -37,7 +36,7 @@ router.post('/login', [
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -48,7 +47,11 @@ router.post('/login', [
     res.json({
       message: 'Login exitoso',
       token,
-      user
+      user: {
+        ...user,
+        id: user._id,
+        branch_name: user.branch_id ? user.branch_id.name : null
+      }
     });
 
   } catch (error) {
@@ -60,13 +63,22 @@ router.post('/login', [
 // Obtener perfil del usuario actual
 router.get('/profile', auth, async (req, res) => {
   try {
-    const user = await db('users')
-      .leftJoin('branches', 'users.branch_id', 'branches.id')
-      .where('users.id', req.user.id)
-      .select('users.id', 'users.email', 'users.name', 'users.role', 'users.branch_id', 'branches.name as branch_name')
-      .first();
+    const user = await User.findById(req.user.id)
+      .populate('branch_id', 'name')
+      .select('-password')
+      .lean();
 
-    res.json({ user });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.json({ 
+      user: {
+        ...user,
+        id: user._id,
+        branch_name: user.branch_id ? user.branch_id.name : null
+      }
+    });
   } catch (error) {
     console.error('Error obteniendo perfil:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -86,15 +98,20 @@ router.put('/change-password', auth, [
 
     const { currentPassword, newPassword } = req.body;
     
-    const user = await db('users').where('id', req.user.id).first();
+    const user = await User.findById(req.user.id);
     
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {
       return res.status(400).json({ error: 'Contraseña actual incorrecta' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await db('users').where('id', req.user.id).update({ password: hashedPassword });
+    user.password = hashedPassword;
+    await user.save();
 
     res.json({ message: 'Contraseña actualizada exitosamente' });
 

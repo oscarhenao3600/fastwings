@@ -3,7 +3,8 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
 const { body, validationResult } = require('express-validator');
-const db = require('../config/database');
+const Order = require('../models/Order');
+const Branch = require('../models/Branch');
 const { auth, requireRole } = require('../middlewares/auth');
 const { generateInvoicePDF } = require('../services/billingService');
 
@@ -22,17 +23,14 @@ router.post('/generate/:orderId',
       const { orderId } = req.params;
       
       // Obtener el pedido
-      let query = db('orders')
-        .leftJoin('branches', 'orders.branch_id', 'branches.id')
-        .where('orders.id', orderId)
-        .select('orders.*', 'branches.name as branch_name', 'branches.address as branch_address', 'branches.phone as branch_phone');
+      let filter = { _id: orderId };
 
       // Filtrar por sucursal según el rol del usuario
       if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-        query = query.where('orders.branch_id', req.user.branch_id);
+        filter.branch_id = req.user.branch_id;
       }
 
-      const order = await query.first();
+      const order = await Order.findOne(filter).populate('branch_id', 'name address phone');
       
       if (!order) {
         return res.status(404).json({ error: 'Pedido no encontrado' });
@@ -42,18 +40,13 @@ router.post('/generate/:orderId',
       const invoicePath = await generateInvoicePDF(order);
       
       // Actualizar el pedido con la ruta de la factura
-      await db('orders')
-        .where('id', orderId)
-        .update({ 
-          invoice_path: invoicePath,
-          updated_at: new Date()
-        });
+      await Order.findByIdAndUpdate(orderId, { invoice_path: invoicePath });
 
       res.json({
         message: 'Factura generada exitosamente',
         invoicePath,
         order: {
-          id: order.id,
+          id: order._id,
           customer_name: order.customer_name,
           total_amount: order.total_amount,
           status: order.status
@@ -75,16 +68,14 @@ router.get('/download/:orderId',
       const { orderId } = req.params;
       
       // Obtener el pedido
-      let query = db('orders')
-        .where('id', orderId)
-        .select('invoice_path', 'branch_id');
+      let filter = { _id: orderId };
 
       // Filtrar por sucursal según el rol del usuario
       if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-        query = query.where('branch_id', req.user.branch_id);
+        filter.branch_id = req.user.branch_id;
       }
 
-      const order = await query.first();
+      const order = await Order.findOne(filter).select('invoice_path branch_id');
       
       if (!order || !order.invoice_path) {
         return res.status(404).json({ error: 'Factura no encontrada' });
@@ -132,7 +123,7 @@ router.post('/send/:branchId',
       }
 
       // Obtener la sucursal
-      const branch = await db('branches').where('id', branchId).first();
+      const branch = await Branch.findById(branchId);
       if (!branch) {
         return res.status(404).json({ error: 'Sucursal no encontrada' });
       }
@@ -142,11 +133,8 @@ router.post('/send/:branchId',
       }
 
       // Obtener pedidos pendientes de facturación
-      const ordersToInvoice = await db('orders')
-        .where('branch_id', branchId)
-        .where('status', 'confirmed')
-        .whereNull('invoice_path')
-        .orderBy('created_at', 'asc')
+      const ordersToInvoice = await Order.find({ branch_id: branchId, status: 'confirmed', invoice_path: null })
+        .sort({ created_at: 1 })
         .limit(5); // Procesar máximo 5 pedidos por vez
 
       if (ordersToInvoice.length === 0) {
@@ -166,26 +154,21 @@ router.post('/send/:branchId',
             invoicePath = await generateInvoicePDF(order);
             
             // Actualizar el pedido con la ruta de la factura
-            await db('orders')
-              .where('id', order.id)
-              .update({ 
-                invoice_path: invoicePath,
-                updated_at: new Date()
-              });
+            await Order.findByIdAndUpdate(order._id, { invoice_path: invoicePath });
           }
 
           // Aquí se implementaría el envío real por WhatsApp
           // Por ahora, solo simulamos el envío
           const whatsappNumber = branch.order_number || branch.system_number;
-          const message = `📄 Factura para tu pedido #${order.id}\n\nCliente: ${order.customer_name}\nTotal: $${order.total_amount}\n\n${caption || 'Gracias por tu compra!'}`;
+          const message = `📄 Factura para tu pedido #${order._id}\n\nCliente: ${order.customer_name}\nTotal: $${order.total_amount}\n\n${caption || 'Gracias por tu compra!'}`;
 
           console.log(`📱 Enviando factura por WhatsApp a ${whatsappNumber}:`);
-          console.log(`   Pedido: #${order.id}`);
+          console.log(`   Pedido: #${order._id}`);
           console.log(`   Cliente: ${order.customer_name}`);
           console.log(`   Factura: ${invoicePath}`);
 
           results.push({
-            orderId: order.id,
+            orderId: order._id,
             customerName: order.customer_name,
             invoicePath,
             whatsappNumber,
@@ -194,9 +177,9 @@ router.post('/send/:branchId',
           });
 
         } catch (error) {
-          console.error(`Error procesando pedido ${order.id}:`, error);
+          console.error(`Error procesando pedido ${order._id}:`, error);
           results.push({
-            orderId: order.id,
+            orderId: order._id,
             customerName: order.customer_name,
             error: error.message,
             status: 'error'
@@ -222,33 +205,32 @@ router.post('/send/:branchId',
 // Obtener estadísticas de facturación
 router.get('/stats', async (req, res) => {
   try {
-    let baseQuery = db('orders');
+    let baseQuery = Order.find();
     
     // Filtrar por sucursal según el rol del usuario
     if (req.user.role === 'branch_user' || req.user.role === 'admin') {
       baseQuery = baseQuery.where('branch_id', req.user.branch_id);
     }
 
-    const [totalOrders] = await baseQuery.count('* as count');
-    const [invoicedOrders] = await baseQuery.whereNotNull('invoice_path').count('* as count');
+    const [totalOrders] = await baseQuery.countDocuments();
+    const [invoicedOrders] = await baseQuery.where('invoice_path').countDocuments();
     const [pendingInvoicing] = await baseQuery
       .where('status', 'confirmed')
       .whereNull('invoice_path')
-      .count('* as count');
+      .countDocuments();
 
-    const totalRevenue = await baseQuery.sum('total_amount as total').first();
+    const totalRevenue = await baseQuery.sum('total_amount');
     const invoicedRevenue = await baseQuery
       .whereNotNull('invoice_path')
-      .sum('total_amount as total')
-      .first();
+      .sum('total_amount');
 
     res.json({
       stats: {
-        totalOrders: totalOrders.count,
-        invoicedOrders: invoicedOrders.count,
-        pendingInvoicing: pendingInvoicing.count,
-        totalRevenue: totalRevenue.total || 0,
-        invoicedRevenue: invoicedRevenue.total || 0
+        totalOrders: totalOrders,
+        invoicedOrders: invoicedOrders,
+        pendingInvoicing: pendingInvoicing,
+        totalRevenue: totalRevenue || 0,
+        invoicedRevenue: invoicedRevenue || 0
       }
     });
 

@@ -1,6 +1,6 @@
 
 const jwt = require('jsonwebtoken');
-const db = require('../config/database');
+const User = require('../models/User');
 
 const auth = async (req, res, next) => {
   try {
@@ -11,7 +11,7 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await db('users').where('id', decoded.userId).first();
+    const user = await User.findById(decoded.userId);
     
     if (!user || !user.is_active) {
       return res.status(401).json({ error: 'Usuario no válido' });

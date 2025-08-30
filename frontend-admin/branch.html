@@ -9,11 +9,11 @@
     <style>
         .sidebar {
             min-height: 100vh;
-            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+            background: #34495e;
         }
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
-            border-radius: 10px;
+            border-radius: 8px;
             margin: 5px 10px;
             transition: all 0.3s ease;
         }
@@ -21,7 +21,7 @@
         .sidebar .nav-link.active {
             color: white;
             background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
+            transform: translateX(3px);
         }
         .main-content {
             background: #f8f9fa;
@@ -29,15 +29,15 @@
         }
         .card {
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             transition: transform 0.3s ease;
         }
         .card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
         }
         .stat-card {
-            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+            background: #34495e;
             color: white;
         }
         .stat-card .stat-icon {
@@ -45,34 +45,34 @@
             opacity: 0.8;
         }
         .order-card {
-            border-left: 4px solid #17a2b8;
+            border-left: 4px solid #34495e;
             margin-bottom: 1rem;
         }
         .order-card.pending {
-            border-left-color: #ffc107;
+            border-left-color: #f39c12;
         }
         .order-card.confirmed {
-            border-left-color: #17a2b8;
+            border-left-color: #3498db;
         }
         .order-card.preparing {
-            border-left-color: #007bff;
+            border-left-color: #9b59b6;
         }
         .order-card.ready {
-            border-left-color: #28a745;
+            border-left-color: #27ae60;
         }
         .order-card.delivered {
-            border-left-color: #6c757d;
+            border-left-color: #95a5a6;
         }
         .order-card.cancelled {
-            border-left-color: #dc3545;
+            border-left-color: #e74c3c;
         }
         .status-badge {
-            border-radius: 20px;
+            border-radius: 8px;
             padding: 5px 15px;
             font-size: 0.8rem;
         }
         .btn-action {
-            border-radius: 20px;
+            border-radius: 8px;
             padding: 8px 20px;
             font-size: 0.9rem;
         }

@@ -3,7 +3,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const { body, validationResult } = require('express-validator');
-const db = require('../config/database');
+const Order = require('../models/Order');
+const Branch = require('../models/Branch');
 const { auth, requireRole } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -44,7 +45,7 @@ router.post('/',
     body('customer_phone').trim().isLength({ min: 10, max: 15 }),
     body('items').isJSON(),
     body('total_amount').isFloat({ min: 0 }),
-    body('branch_id').isInt().toInt(),
+    body('branch_id').isMongoId(),
     body('notes').optional().trim()
   ],
   async (req, res) => {
@@ -57,7 +58,7 @@ router.post('/',
       const { customer_name, customer_phone, items, total_amount, branch_id, notes } = req.body;
 
       // Verificar que la sucursal existe y está activa
-      const branch = await db('branches').where('id', branch_id).where('is_active', true).first();
+      const branch = await Branch.findOne({ _id: branch_id, is_active: true });
       if (!branch) {
         return res.status(400).json({ error: 'Sucursal no válida' });
       }
@@ -87,12 +88,8 @@ router.post('/',
         orderData.payment_proof_path = `/uploads/${req.file.filename}`;
       }
 
-      const [orderId] = await db('orders').insert(orderData);
-      const newOrder = await db('orders')
-        .leftJoin('branches', 'orders.branch_id', 'branches.id')
-        .where('orders.id', orderId)
-        .select('orders.*', 'branches.name as branch_name')
-        .first();
+      const newOrder = await Order.create(orderData);
+      await newOrder.populate('branch_id', 'name');
 
       res.status(201).json({
         message: 'Pedido creado exitosamente',
@@ -109,24 +106,24 @@ router.post('/',
 // Listar pedidos (filtrado por rol)
 router.get('/', async (req, res) => {
   try {
-    let query = db('orders')
-      .leftJoin('branches', 'orders.branch_id', 'branches.id')
-      .select('orders.*', 'branches.name as branch_name');
+    let filter = {};
 
     // Filtrar por sucursal según el rol del usuario
     if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-      query = query.where('orders.branch_id', req.user.branch_id);
+      filter.branch_id = req.user.branch_id;
     }
 
     // Filtros opcionales
     if (req.query.status) {
-      query = query.where('orders.status', req.query.status);
+      filter.status = req.query.status;
     }
     if (req.query.branch_id && req.user.role === 'super_admin') {
-      query = query.where('orders.branch_id', req.query.branch_id);
+      filter.branch_id = req.query.branch_id;
     }
 
-    const orders = await query.orderBy('orders.created_at', 'desc');
+    const orders = await Order.find(filter)
+      .populate('branch_id', 'name')
+      .sort({ createdAt: -1 });
     
     res.json({ orders });
   } catch (error) {
@@ -140,17 +137,14 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    let query = db('orders')
-      .leftJoin('branches', 'orders.branch_id', 'branches.id')
-      .where('orders.id', id)
-      .select('orders.*', 'branches.name as branch_name');
+    let filter = { _id: id };
 
     // Filtrar por sucursal según el rol del usuario
     if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-      query = query.where('orders.branch_id', req.user.branch_id);
+      filter.branch_id = req.user.branch_id;
     }
 
-    const order = await query.first();
+    const order = await Order.findOne(filter).populate('branch_id', 'name');
     
     if (!order) {
       return res.status(404).json({ error: 'Pedido no encontrado' });
@@ -179,23 +173,26 @@ router.patch('/:id/status',
       const { id } = req.params;
       const { status } = req.body;
 
-      let query = db('orders').where('id', id);
+      let filter = { _id: id };
       
       // Filtrar por sucursal según el rol del usuario
       if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-        query = query.where('branch_id', req.user.branch_id);
+        filter.branch_id = req.user.branch_id;
       }
 
-      const order = await query.first();
+      const order = await Order.findOneAndUpdate(
+        filter,
+        { status },
+        { new: true }
+      ).populate('branch_id', 'name');
+
       if (!order) {
         return res.status(404).json({ error: 'Pedido no encontrado' });
       }
 
-      await query.update({ status, updated_at: new Date() });
-
       res.json({
         message: 'Estado del pedido actualizado exitosamente',
-        order: { ...order, status }
+        order
       });
 
     } catch (error) {
@@ -221,23 +218,26 @@ router.patch('/:id/notes',
       const { id } = req.params;
       const { notes } = req.body;
 
-      let query = db('orders').where('id', id);
+      let filter = { _id: id };
       
       // Filtrar por sucursal según el rol del usuario
       if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-        query = query.where('branch_id', req.user.branch_id);
+        filter.branch_id = req.user.branch_id;
       }
 
-      const order = await query.first();
+      const order = await Order.findOneAndUpdate(
+        filter,
+        { notes },
+        { new: true }
+      ).populate('branch_id', 'name');
+
       if (!order) {
         return res.status(404).json({ error: 'Pedido no encontrado' });
       }
 
-      await query.update({ notes, updated_at: new Date() });
-
       res.json({
         message: 'Notas del pedido actualizadas exitosamente',
-        order: { ...order, notes }
+        order
       });
 
     } catch (error) {
@@ -250,31 +250,34 @@ router.patch('/:id/notes',
 // Dashboard stats para pedidos
 router.get('/dashboard/stats', async (req, res) => {
   try {
-    let baseQuery = db('orders');
+    let filter = {};
     
     // Filtrar por sucursal según el rol del usuario
     if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-      baseQuery = baseQuery.where('branch_id', req.user.branch_id);
+      filter.branch_id = req.user.branch_id;
     }
 
-    const [totalOrders] = await baseQuery.count('* as count');
-    const [pendingOrders] = await baseQuery.where('status', 'pending').count('* as count');
-    const [confirmedOrders] = await baseQuery.where('status', 'confirmed').count('* as count');
-    const [preparingOrders] = await baseQuery.where('status', 'preparing').count('* as count');
-    const [readyOrders] = await baseQuery.where('status', 'ready').count('* as count');
-    const [deliveredOrders] = await baseQuery.where('status', 'delivered').count('* as count');
+    const totalOrders = await Order.countDocuments(filter);
+    const pendingOrders = await Order.countDocuments({ ...filter, status: 'pending' });
+    const confirmedOrders = await Order.countDocuments({ ...filter, status: 'confirmed' });
+    const preparingOrders = await Order.countDocuments({ ...filter, status: 'preparing' });
+    const readyOrders = await Order.countDocuments({ ...filter, status: 'ready' });
+    const deliveredOrders = await Order.countDocuments({ ...filter, status: 'delivered' });
 
-    const totalRevenue = await baseQuery.sum('total_amount as total').first();
+    const totalRevenueResult = await Order.aggregate([
+      { $match: filter },
+      { $group: { _id: null, total: { $sum: '$total_amount' } } }
+    ]);
 
     res.json({
       stats: {
-        totalOrders: totalOrders.count,
-        pendingOrders: pendingOrders.count,
-        confirmedOrders: confirmedOrders.count,
-        preparingOrders: preparingOrders.count,
-        readyOrders: readyOrders.count,
-        deliveredOrders: deliveredOrders.count,
-        totalRevenue: totalRevenue.total || 0
+        totalOrders,
+        pendingOrders,
+        confirmedOrders,
+        preparingOrders,
+        readyOrders,
+        deliveredOrders,
+        totalRevenue: totalRevenueResult.length > 0 ? totalRevenueResult[0].total || 0 : 0
       }
     });
 

@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { connectDB } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const orderRoutes = require('./routes/orders');
@@ -10,6 +11,9 @@ const whatsappWebhook = require('./routes/whatsappWebhook');
 const billingRoutes = require('./routes/billing');
 
 const app = express();
+
+// Conectar a MongoDB
+connectDB();
 
 // Middlewares
 app.use(cors());
@@ -28,7 +32,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
-  res.json({ message: 'FastWings API v4 - Sistema de Pedidos WhatsApp' });
+  res.json({ message: 'FastWings API v4 - Sistema de Pedidos WhatsApp (MongoDB)' });
 });
 
 // Manejo de errores

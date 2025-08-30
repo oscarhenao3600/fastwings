@@ -1,7 +1,8 @@
 
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const db = require('../config/database');
+const Branch = require('../models/Branch');
+const Order = require('../models/Order');
 const { generateInvoicePDF } = require('../services/billingService');
 
 const router = express.Router();
@@ -24,10 +25,12 @@ router.post('/webhook', [
     console.log(`📱 Mensaje recibido de ${from}: ${text || type}`);
 
     // Buscar la sucursal asociada a este número
-    const branch = await db('branches')
-      .where('order_number', from)
-      .orWhere('system_number', from)
-      .first();
+    const branch = await Branch.findOne({
+      $or: [
+        { order_number: from },
+        { system_number: from }
+      ]
+    });
 
     if (!branch) {
       console.log(`❌ No se encontró sucursal para el número ${from}`);
@@ -39,10 +42,10 @@ router.post('/webhook', [
 
     if (type === 'image' && mediaUrl) {
       // Procesar imagen (comprobante de pago)
-      response = await processPaymentProof(from, mediaUrl, branch.id);
+      response = await processPaymentProof(from, mediaUrl, branch._id);
     } else if (text) {
       // Procesar texto (pedido)
-      response = await processOrderText(from, text, branch.id);
+      response = await processOrderText(from, text, branch._id);
     }
 
     res.json(response);
@@ -62,28 +65,24 @@ async function processPaymentProof(phone, mediaUrl, branchId) {
     console.log(`💰 Comprobante de pago recibido de ${phone} para sucursal ${branchId}`);
     
     // Buscar pedidos pendientes para este cliente
-    const pendingOrders = await db('orders')
-      .where('branch_id', branchId)
-      .where('customer_phone', phone)
-      .where('status', 'pending')
-      .orderBy('created_at', 'desc')
-      .limit(1);
+    const pendingOrders = await Order.find({
+      branch_id: branchId,
+      customer_phone: phone,
+      status: 'pending'
+    }).sort({ createdAt: -1 }).limit(1);
 
     if (pendingOrders.length > 0) {
       const order = pendingOrders[0];
       
       // Actualizar el pedido con el comprobante
-      await db('orders')
-        .where('id', order.id)
-        .update({ 
-          payment_proof_path: mediaUrl,
-          status: 'confirmed',
-          updated_at: new Date()
-        });
+      await Order.findByIdAndUpdate(order._id, {
+        payment_proof_path: mediaUrl,
+        status: 'confirmed'
+      });
 
       return {
         message: 'Comprobante de pago procesado exitosamente',
-        orderId: order.id,
+        orderId: order._id,
         status: 'confirmed'
       };
     }
@@ -122,7 +121,7 @@ async function processOrderText(phone, text, branchId) {
     }
 
     // Crear el pedido
-    const [orderId] = await db('orders').insert({
+    const newOrder = await Order.create({
       branch_id: branchId,
       customer_name: customerName || 'Cliente WhatsApp',
       customer_phone: phone,
@@ -131,12 +130,6 @@ async function processOrderText(phone, text, branchId) {
       status: 'pending',
       notes: `Pedido recibido por WhatsApp: ${text}`
     });
-
-    const newOrder = await db('orders')
-      .leftJoin('branches', 'orders.branch_id', 'branches.id')
-      .where('orders.id', orderId)
-      .select('orders.*', 'branches.name as branch_name')
-      .first();
 
     return {
       message: 'Pedido creado exitosamente',

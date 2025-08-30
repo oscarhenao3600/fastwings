@@ -3,9 +3,11 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const { body, validationResult } = require('express-validator');
-const db = require('../config/database');
+const Branch = require('../models/Branch');
+const User = require('../models/User');
+const Order = require('../models/Order');
 const { auth, requireRole } = require('../middlewares/auth');
-const bcrypt = require('bcryptjs'); // Added missing import for bcrypt
+const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
@@ -40,9 +42,7 @@ router.use(auth);
 // Listar todas las sucursales (Super Admin y Admin)
 router.get('/branches', requireRole(['super_admin', 'admin']), async (req, res) => {
   try {
-    const branches = await db('branches')
-      .select('*')
-      .orderBy('name');
+    const branches = await Branch.find().sort('name');
     
     res.json({ branches });
   } catch (error) {
@@ -83,8 +83,7 @@ router.post('/branches',
         branchData.logo_path = `/uploads/${req.file.filename}`;
       }
 
-      const [branchId] = await db('branches').insert(branchData);
-      const newBranch = await db('branches').where('id', branchId).first();
+      const newBranch = await Branch.create(branchData);
 
       res.status(201).json({
         message: 'Sucursal creada exitosamente',
@@ -123,8 +122,11 @@ router.put('/branches/:id',
         updateData.logo_path = `/uploads/${req.file.filename}`;
       }
 
-      await db('branches').where('id', id).update(updateData);
-      const updatedBranch = await db('branches').where('id', id).first();
+      const updatedBranch = await Branch.findByIdAndUpdate(id, updateData, { new: true });
+
+      if (!updatedBranch) {
+        return res.status(404).json({ error: 'Sucursal no encontrada' });
+      }
 
       res.json({
         message: 'Sucursal actualizada exitosamente',
@@ -144,13 +146,17 @@ router.delete('/branches/:id', requireRole(['super_admin']), async (req, res) =>
     const { id } = req.params;
     
     // Verificar que no haya usuarios asociados
-    const usersCount = await db('users').where('branch_id', id).count('* as count').first();
-    if (usersCount.count > 0) {
+    const usersCount = await User.countDocuments({ branch_id: id });
+    if (usersCount > 0) {
       return res.status(400).json({ error: 'No se puede eliminar una sucursal con usuarios asociados' });
     }
 
-    await db('branches').where('id', id).del();
+    const deletedBranch = await Branch.findByIdAndDelete(id);
     
+    if (!deletedBranch) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
+    }
+
     res.json({ message: 'Sucursal eliminada exitosamente' });
 
   } catch (error) {
@@ -164,15 +170,13 @@ router.delete('/branches/:id', requireRole(['super_admin']), async (req, res) =>
 // Listar usuarios (Super Admin ve todos, Admin ve solo su sucursal)
 router.get('/users', requireRole(['super_admin', 'admin']), async (req, res) => {
   try {
-    let query = db('users')
-      .leftJoin('branches', 'users.branch_id', 'branches.id')
-      .select('users.id', 'users.email', 'users.name', 'users.role', 'users.is_active', 'users.created_at', 'branches.name as branch_name');
+    let query = User.find().populate('branch_id', 'name');
 
     if (req.user.role === 'admin') {
-      query = query.where('users.branch_id', req.user.branch_id);
+      query = query.where('branch_id', req.user.branch_id);
     }
 
-    const users = await query.orderBy('users.name');
+    const users = await query.sort('name');
     
     res.json({ users });
   } catch (error) {
@@ -189,7 +193,7 @@ router.post('/users',
     body('password').isLength({ min: 6 }),
     body('name').trim().isLength({ min: 2, max: 100 }),
     body('role').isIn(['admin', 'branch_user']),
-    body('branch_id').isInt().toInt()
+    body('branch_id').isMongoId()
   ],
   async (req, res) => {
     try {
@@ -201,20 +205,20 @@ router.post('/users',
       const { email, password, name, role, branch_id } = req.body;
 
       // Verificar que la sucursal existe
-      const branch = await db('branches').where('id', branch_id).first();
+      const branch = await Branch.findById(branch_id);
       if (!branch) {
         return res.status(400).json({ error: 'Sucursal no encontrada' });
       }
 
       // Verificar que el email no esté en uso
-      const existingUser = await db('users').where('email', email).first();
+      const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ error: 'El email ya está en uso' });
       }
 
       const hashedPassword = await bcrypt.hash(password, 12);
       
-      const [userId] = await db('users').insert({
+      const newUser = await User.create({
         email,
         password: hashedPassword,
         name,
@@ -222,11 +226,8 @@ router.post('/users',
         branch_id
       });
 
-      const newUser = await db('users')
-        .leftJoin('branches', 'users.branch_id', 'branches.id')
-        .where('users.id', userId)
-        .select('users.id', 'users.email', 'users.name', 'users.role', 'users.branch_id', 'branches.name as branch_name')
-        .first();
+      // Populate branch info for response
+      await newUser.populate('branch_id', 'name');
 
       res.status(201).json({
         message: 'Usuario creado exitosamente',
@@ -243,21 +244,20 @@ router.post('/users',
 // Dashboard stats para Super Admin
 router.get('/dashboard/stats', requireRole(['super_admin']), async (req, res) => {
   try {
-    const [totalBranches] = await db('branches').count('* as count');
-    const [totalUsers] = await db('users').count('* as count');
-    const [totalOrders] = await db('orders').count('* as count');
+    const totalBranches = await Branch.countDocuments();
+    const totalUsers = await User.countDocuments();
+    const totalOrders = await Order.countDocuments();
     
-    const recentOrders = await db('orders')
-      .leftJoin('branches', 'orders.branch_id', 'branches.id')
-      .select('orders.*', 'branches.name as branch_name')
-      .orderBy('orders.created_at', 'desc')
+    const recentOrders = await Order.find()
+      .populate('branch_id', 'name')
+      .sort({ createdAt: -1 })
       .limit(10);
 
     res.json({
       stats: {
-        totalBranches: totalBranches.count,
-        totalUsers: totalUsers.count,
-        totalOrders: totalOrders.count
+        totalBranches,
+        totalUsers,
+        totalOrders
       },
       recentOrders
     });
