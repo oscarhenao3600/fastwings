@@ -1,16 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const branchWhatsappService = require('../services/branchWhatsappService');
+const whatsapp = require('../services/whatsappProvider');
 const Branch = require('../models/Branch');
 const { auth, requireRole } = require('../middlewares/auth');
+const rateLimit = require('express-rate-limit');
+
+// Rate limiting para evitar spam
+const whatsappLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // máximo 100 requests por ventana
+  message: 'Demasiadas peticiones, intenta de nuevo más tarde'
+});
+
+// Aplicar rate limit a todas las rutas de WhatsApp
+router.use(whatsappLimiter);
 
 // ===== WHATSAPP POR SUCURSAL =====
 
 // Obtener estado de WhatsApp de todas las sucursales
 router.get('/branches/status', auth, requireRole(['super_admin', 'admin']), async (req, res) => {
   try {
-    const branchesStatus = await branchWhatsappService.getAllBranchesWhatsAppStatus();
-    res.json({ branches: branchesStatus });
+    const branches = await Branch.find({}, 'name whatsapp');
+    const branchesWithStatus = [];
+
+    for (const branch of branches) {
+      const status = await whatsapp.getStatus(branch._id.toString());
+      branchesWithStatus.push({
+        id: branch._id,
+        name: branch.name,
+        whatsapp: {
+          ...branch.whatsapp.toObject(),
+          ...status
+        }
+      });
+    }
+
+    res.json({ branches: branchesWithStatus });
   } catch (error) {
     console.error('Error obteniendo estado de WhatsApp de sucursales:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -21,7 +46,7 @@ router.get('/branches/status', auth, requireRole(['super_admin', 'admin']), asyn
 router.get('/branch/:branchId/status', auth, requireRole(['super_admin', 'admin']), async (req, res) => {
   try {
     const { branchId } = req.params;
-    const status = await branchWhatsappService.getBranchWhatsAppStatus(branchId);
+    const status = await whatsapp.getStatus(branchId);
     res.json({ status });
   } catch (error) {
     console.error('Error obteniendo estado de WhatsApp de sucursal:', error);
@@ -35,17 +60,27 @@ router.post('/branch/:branchId/initialize', auth, requireRole(['super_admin']), 
     const { branchId } = req.params;
     const { phoneNumber } = req.body;
 
-    // Actualizar número de teléfono de la sucursal
-    if (phoneNumber) {
-      await Branch.findByIdAndUpdate(branchId, {
-        'whatsapp.phone_number': phoneNumber
-      });
+    // Verificar que la sucursal existe
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
     }
 
-    const result = await branchWhatsappService.initializeBranchWhatsApp(branchId);
+    // Actualizar número de teléfono de la sucursal
+    if (phoneNumber) {
+      branch.whatsapp.phone_number = phoneNumber;
+      branch.whatsapp.sessionId = `branch_${branchId}`;
+      await branch.save();
+    }
+
+    // Inicializar WhatsApp
+    const result = await whatsapp.initialize(branchId);
     
-    if (result) {
-      res.json({ message: 'WhatsApp inicializado exitosamente para la sucursal' });
+    if (result.ok) {
+      res.json({ 
+        message: 'WhatsApp inicializado exitosamente para la sucursal',
+        status: result.status
+      });
     } else {
       res.status(400).json({ error: 'No se pudo inicializar WhatsApp para la sucursal' });
     }
@@ -59,8 +94,22 @@ router.post('/branch/:branchId/initialize', auth, requireRole(['super_admin']), 
 router.post('/branch/:branchId/disconnect', auth, requireRole(['super_admin']), async (req, res) => {
   try {
     const { branchId } = req.params;
-    await branchWhatsappService.disconnectBranchWhatsApp(branchId);
-    res.json({ message: 'WhatsApp desconectado exitosamente de la sucursal' });
+    
+    // Verificar que la sucursal existe
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
+    }
+
+    const result = await whatsapp.disconnect(branchId);
+    
+    if (result.ok) {
+      // Actualizar estado en la base de datos
+      await branch.updateWhatsAppStatus('disconnected');
+      res.json({ message: 'WhatsApp desconectado exitosamente de la sucursal' });
+    } else {
+      res.status(400).json({ error: result.error || 'Error desconectando WhatsApp' });
+    }
   } catch (error) {
     console.error('Error desconectando WhatsApp de sucursal:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -71,12 +120,26 @@ router.post('/branch/:branchId/disconnect', auth, requireRole(['super_admin']), 
 router.post('/branch/:branchId/logout', auth, requireRole(['super_admin']), async (req, res) => {
   try {
     const { branchId } = req.params;
-    const result = await branchWhatsappService.logoutBranchWhatsApp(branchId);
     
-    if (result) {
+    // Verificar que la sucursal existe
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
+    }
+
+    const result = await whatsapp.logout(branchId);
+    
+    if (result.ok) {
+      // Actualizar estado en la base de datos
+      await branch.updateWhatsAppStatus('not_initialized');
+      branch.whatsapp.phone_number = null;
+      branch.whatsapp.sessionId = null;
+      branch.whatsapp.lastReadyAt = null;
+      await branch.save();
+      
       res.json({ message: 'Sesión de WhatsApp desvinculada exitosamente de la sucursal' });
     } else {
-      res.status(400).json({ error: 'No se pudo desvincular la sesión de WhatsApp de la sucursal' });
+      res.status(400).json({ error: result.error || 'Error desvinculando WhatsApp' });
     }
   } catch (error) {
     console.error('Error desvinculando sesión de WhatsApp de sucursal:', error);
@@ -88,27 +151,22 @@ router.post('/branch/:branchId/logout', auth, requireRole(['super_admin']), asyn
 router.get('/branch/:branchId/qr', auth, requireRole(['super_admin', 'admin']), async (req, res) => {
   try {
     const { branchId } = req.params;
-    const branch = await Branch.findById(branchId);
     
+    // Verificar que la sucursal existe
+    const branch = await Branch.findById(branchId);
     if (!branch) {
       return res.status(404).json({ error: 'Sucursal no encontrada' });
     }
 
-    if (branch.whatsapp.status === 'qr_ready' && branch.whatsapp.qr_code) {
+    const result = await whatsapp.getQR(branchId);
+    
+    if (result.ok) {
       res.json({ 
-        qrDataUrl: branch.whatsapp.qr_code,
-        status: branch.whatsapp.status
-      });
-    } else if (branch.whatsapp.status === 'connected') {
-      res.json({ 
-        message: 'WhatsApp ya está conectado para esta sucursal',
-        status: branch.whatsapp.status
+        qrDataUrl: result.dataUrl,
+        status: 'qr_ready'
       });
     } else {
-      res.json({ 
-        message: 'QR no disponible para esta sucursal',
-        status: branch.whatsapp.status
-      });
+      res.status(400).json({ error: result.message || 'QR no disponible' });
     }
   } catch (error) {
     console.error('Error obteniendo QR de sucursal:', error);
@@ -121,20 +179,26 @@ router.post('/branch/:branchId/send', auth, requireRole(['super_admin', 'admin']
   try {
     const { branchId } = req.params;
     const { to, message } = req.body;
-    
+
     if (!to || !message) {
-      return res.status(400).json({ error: 'Número de teléfono y mensaje son requeridos' });
+      return res.status(400).json({ error: 'Número de destino y mensaje son requeridos' });
     }
 
-    const result = await branchWhatsappService.sendMessageFromBranch(branchId, to, message);
+    // Verificar que la sucursal existe
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
+    }
+
+    const result = await whatsapp.sendMessage(branchId, to, message);
     
     res.json({ 
-      message: 'Mensaje enviado exitosamente desde la sucursal',
-      result 
+      message: 'Mensaje enviado exitosamente',
+      result
     });
   } catch (error) {
     console.error('Error enviando mensaje desde sucursal:', error);
-    res.status(500).json({ error: 'Error enviando mensaje' });
+    res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 });
 
@@ -143,42 +207,76 @@ router.post('/branch/:branchId/send-media', auth, requireRole(['super_admin', 'a
   try {
     const { branchId } = req.params;
     const { to, filePath, caption } = req.body;
-    
+
     if (!to || !filePath) {
-      return res.status(400).json({ error: 'Número de teléfono y ruta del archivo son requeridos' });
+      return res.status(400).json({ error: 'Número de destino y ruta del archivo son requeridos' });
     }
 
-    const result = await branchWhatsappService.sendMediaFromBranch(branchId, to, filePath, caption);
+    // Verificar que la sucursal existe
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
+    }
+
+    const result = await whatsapp.sendMedia(branchId, to, filePath, caption);
     
     res.json({ 
-      message: 'Media enviada exitosamente desde la sucursal',
-      result 
+      message: 'Media enviado exitosamente',
+      result
     });
   } catch (error) {
     console.error('Error enviando media desde sucursal:', error);
-    res.status(500).json({ error: 'Error enviando media' });
+    res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 });
 
-// Actualizar configuración de WhatsApp de una sucursal
-router.put('/branch/:branchId/config', auth, requireRole(['super_admin']), async (req, res) => {
+// Configurar sucursal (números de WhatsApp)
+router.post('/branch/:branchId/config', auth, requireRole(['super_admin']), async (req, res) => {
   try {
     const { branchId } = req.params;
-    const { phoneNumber } = req.body;
-    
-    const updateData = {};
-    if (phoneNumber) {
-      updateData['whatsapp.phone_number'] = phoneNumber;
+    const { systemNumber, ordersForwardNumber } = req.body;
+
+    const branch = await Branch.findById(branchId);
+    if (!branch) {
+      return res.status(404).json({ error: 'Sucursal no encontrada' });
     }
 
-    const branch = await Branch.findByIdAndUpdate(branchId, updateData, { new: true });
+    if (systemNumber) {
+      branch.systemNumber = systemNumber;
+    }
+    if (ordersForwardNumber) {
+      branch.ordersForwardNumber = ordersForwardNumber;
+    }
+
+    await branch.save();
     
     res.json({ 
-      message: 'Configuración de WhatsApp actualizada exitosamente',
-      branch 
+      message: 'Configuración de sucursal actualizada exitosamente',
+      branch: {
+        id: branch._id,
+        name: branch.name,
+        systemNumber: branch.systemNumber,
+        ordersForwardNumber: branch.ordersForwardNumber
+      }
     });
   } catch (error) {
-    console.error('Error actualizando configuración de WhatsApp de sucursal:', error);
+    console.error('Error configurando sucursal:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Métricas y salud del pool
+router.get('/health', auth, requireRole(['super_admin']), async (req, res) => {
+  try {
+    const health = await whatsapp.getHealth();
+    res.json({ 
+      health,
+      timestamp: new Date().toISOString(),
+      totalBranches: health.length,
+      connectedBranches: health.filter(h => h.status === 'ready').length
+    });
+  } catch (error) {
+    console.error('Error obteniendo salud del pool:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

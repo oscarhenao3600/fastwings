@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const branchSchema = new mongoose.Schema({
+const BranchSchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -14,50 +15,113 @@ const branchSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  logo_path: {
-    type: String
-  },
-  order_number: {
+  email: {
     type: String,
-    unique: true,
-    trim: true
+    trim: true,
+    lowercase: true
   },
-  system_number: {
+  // Números de WhatsApp
+  systemNumber: {
     type: String,
-    trim: true
+    trim: true,
+    description: 'Número que atiende clientes'
   },
-  // Configuración de WhatsApp por sucursal
+  ordersForwardNumber: {
+    type: String,
+    trim: true,
+    description: 'Número receptor de pedidos (cocina)'
+  },
+  // Configuración WhatsApp
   whatsapp: {
-    phone_number: {
+    provider: { 
+      type: String, 
+      default: 'whatsapp-web.js',
+      enum: ['whatsapp-web.js', 'twilio']
+    },
+    sessionId: { 
       type: String,
-      trim: true
+      description: 'branch_<branchId> (solo informativo)'
     },
-    is_connected: {
-      type: Boolean,
-      default: false
+    status: { 
+      type: String, 
+      default: 'not_initialized',
+      enum: ['not_initialized', 'init', 'qr', 'ready', 'disconnected', 'auth_failure', 'destroyed']
     },
-    session_path: {
-      type: String,
-      default: null
+    lastReadyAt: { 
+      type: Date 
     },
-    last_connection: {
-      type: Date
+    phone_number: { 
+      type: String, 
+      trim: true 
     },
-    qr_code: {
-      type: String
+    is_connected: { 
+      type: Boolean, 
+      default: false 
     },
-    status: {
-      type: String,
-      enum: ['disconnected', 'connecting', 'connected', 'qr_ready', 'auth_failed'],
-      default: 'disconnected'
+    session_path: { 
+      type: String, 
+      default: null 
+    },
+    qr_code: { 
+      type: String 
     }
   },
-  is_active: {
-    type: Boolean,
-    default: true
+  // Facturación del servicio
+  serviceFee: { 
+    type: Number, 
+    default: 0.05,
+    min: 0,
+    max: 1
+  },
+  billingActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  // Control administrativo
+  isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  // Configuración de menú
+  menu: {
+    items: [{
+      name: { type: String, required: true },
+      description: String,
+      price: { type: Number, required: true, min: 0 },
+      category: String,
+      isAvailable: { type: Boolean, default: true }
+    }],
+    combos: [{
+      name: { type: String, required: true },
+      description: String,
+      items: [{
+        itemId: { type: Schema.Types.ObjectId, ref: 'MenuItem' },
+        quantity: { type: Number, default: 1 }
+      }],
+      price: { type: Number, required: true, min: 0 },
+      isAvailable: { type: Boolean, default: true }
+    }]
   }
-}, {
-  timestamps: true
+}, { 
+  timestamps: true 
 });
 
-module.exports = mongoose.model('Branch', branchSchema);
+// Métodos del modelo
+BranchSchema.methods.updateWhatsAppStatus = function(status, lastReadyAt = null) {
+  this.whatsapp.status = status;
+  if (lastReadyAt) {
+    this.whatsapp.lastReadyAt = lastReadyAt;
+  }
+  this.whatsapp.is_connected = status === 'ready';
+  return this.save();
+};
+
+BranchSchema.methods.getMenuItems = function() {
+  return this.menu.items.filter(item => item.isAvailable);
+};
+
+BranchSchema.methods.getCombos = function() {
+  return this.menu.combos.filter(combo => combo.isAvailable);
+};
+
+module.exports = mongoose.model('Branch', BranchSchema);
