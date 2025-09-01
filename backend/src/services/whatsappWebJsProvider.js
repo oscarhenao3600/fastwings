@@ -1,35 +1,100 @@
 
 /* Integración ejemplo con whatsapp-web.js (env: WHATSAPP_PROVIDER=whatsapp-web.js)
-Install: npm install whatsapp-web.js qrcode-terminal
+Install: npm install whatsapp-web.js qrcode
 Notes: MessageMedia requires media to be accessible on disk; LocalAuth persists session in .wwebjs_auth
 */
-const qrcode = require('qrcode-terminal');
+const qrcode = require('qrcode');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const path = require('path');
 
-const client = new Client({ authStrategy: new LocalAuth() });
+class WhatsAppWebJsProvider {
+  constructor() {
+    this.client = null;
+    this.isConnected = false;
+    this.qrDataUrl = null;
+  }
 
-client.on('qr', qr => { qrcode.generate(qr, {small:true}); console.log('QR generado. Escanéalo con tu teléfono.'); });
-client.on('ready', () => console.log('WhatsApp client listo (whatsapp-web.js)'));
-client.on('auth_failure', msg => console.error('Auth failure', msg));
-client.initialize();
+  async initialize() {
+    try {
+      this.client = new Client({
+        authStrategy: new LocalAuth({
+          clientId: 'fastwings-whatsapp',
+          dataPath: '.wwebjs_auth'
+        }),
+        puppeteer: {
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
+        }
+      });
 
-async function sendMessage(to, message){
-  try{
-    const chatId = to.includes('@') ? to : `${to}@c.us`;
-    await client.sendMessage(chatId, message);
-    return true;
-  }catch(e){ console.error('WA send error', e); throw e; }
+      this.client.on('qr', async (qr) => {
+        console.log('🔐 QR Code generado para WhatsApp Web');
+        try {
+          this.qrDataUrl = await qrcode.toDataURL(qr);
+        } catch (error) {
+          console.error('Error generando QR como imagen:', error);
+        }
+      });
+
+      this.client.on('ready', () => {
+        this.isConnected = true;
+        this.qrDataUrl = null;
+        console.log('✅ WhatsApp Web conectado exitosamente');
+      });
+
+      this.client.on('auth_failure', (msg) => {
+        console.error('❌ Error de autenticación WhatsApp:', msg);
+      });
+
+      await this.client.initialize();
+      return true;
+    } catch (error) {
+      console.error('Error inicializando WhatsApp Web:', error);
+      throw error;
+    }
+  }
+
+  async sendMessage(to, message) {
+    try {
+      if (!this.isConnected) {
+        throw new Error('WhatsApp no está conectado');
+      }
+
+      const chatId = to.includes('@') ? to : `${to}@c.us`;
+      await this.client.sendMessage(chatId, message);
+      return true;
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      throw error;
+    }
+  }
+
+  async sendMedia(to, filePath, caption) {
+    try {
+      if (!this.isConnected) {
+        throw new Error('WhatsApp no está conectado');
+      }
+
+      const chatId = to.includes('@') ? to : `${to}@c.us`;
+      const absPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+      const media = MessageMedia.fromFilePath(absPath);
+      await this.client.sendMessage(chatId, media, { caption: caption || '' });
+      return true;
+    } catch (error) {
+      console.error('Error enviando media:', error);
+      throw error;
+    }
+  }
+
+  getConnectionStatus() {
+    return {
+      isConnected: this.isConnected,
+      qrDataUrl: this.qrDataUrl
+    };
+  }
 }
 
-async function sendMedia(to, filePath, caption){
-  try{
-    const chatId = to.includes('@') ? to : `${to}@c.us`;
-    const abs = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
-    const media = MessageMedia.fromFilePath(abs);
-    await client.sendMessage(chatId, media, { caption: caption || '' });
-    return true;
-  }catch(e){ console.error('WA sendMedia error', e); throw e; }
-}
+// Crear instancia singleton
+const whatsappWebJsProvider = new WhatsAppWebJsProvider();
 
-module.exports = { sendMessage, sendMedia };
+module.exports = whatsappWebJsProvider;

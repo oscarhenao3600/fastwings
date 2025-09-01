@@ -18,6 +18,7 @@
                         <div id="tokenInfo"></div>
                         <div id="testResult"></div>
                         <button class="btn btn-primary mt-3" onclick="testToken()">Probar Token</button>
+                        <button class="btn btn-warning mt-3 ms-2" onclick="clearAuth()">Limpiar Auth</button>
                     </div>
                 </div>
             </div>
@@ -100,8 +101,16 @@
             }
         }
 
+        function clearAuth() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            checkToken();
+            document.getElementById('testResult').innerHTML = '<div class="alert alert-info">Auth limpiado</div>';
+        }
+
         // Inicializar
         checkToken();
     </script>
 </body>
 </html>
+

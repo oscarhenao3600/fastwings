@@ -1,4 +1,3 @@
-
 const providerName = process.env.WHATSAPP_PROVIDER || 'whatsapp-web.js';
 let impl = null;
 try{
