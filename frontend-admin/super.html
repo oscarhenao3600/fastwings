@@ -371,7 +371,15 @@
                             </div>
                         </div>
 
-
+                        <!-- Métricas de Salud del Pool -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Métricas de Salud del Pool</h6>
+                            </div>
+                            <div class="card-body" id="whatsappHealthMetrics">
+                                <!-- Métricas se cargarán aquí -->
+                            </div>
+                        </div>
                     </div>
 
                     <div id="settingsSection" style="display: none;">
@@ -472,6 +480,30 @@
                         <button type="submit" class="btn btn-primary">Guardar</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div class="modal fade" id="qrModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qrModalTitle">Código QR para WhatsApp</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="" alt="QR Code" id="qrModalImage" style="max-width: 300px; border: 2px solid #ddd; border-radius: 8px;">
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Abre WhatsApp en tu teléfono → Menú → WhatsApp Web → Escanea el código
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -673,13 +705,13 @@
             }
 
             updateDashboardStats(data) {
-                document.getElementById('totalBranches').textContent = data.stats.totalBranches;
-                document.getElementById('totalUsers').textContent = data.stats.totalUsers;
-                document.getElementById('totalOrders').textContent = data.stats.totalOrders;
-                document.getElementById('totalRevenue').textContent = `$${data.stats.totalRevenue || 0}`;
+                document.getElementById('totalBranches').textContent = data.totalBranches;
+                document.getElementById('totalUsers').textContent = data.totalUsers;
+                document.getElementById('totalOrders').textContent = data.totalOrders;
+                document.getElementById('totalRevenue').textContent = `$${data.totalRevenue || 0}`;
 
                 // Update recent orders table
-                this.updateRecentOrdersTable(data.recentOrders);
+                this.updateRecentOrdersTable(data.recentOrders || []);
             }
 
             updateRecentOrdersTable(orders) {
@@ -871,7 +903,7 @@
             async loadBillingStats() {
                 try {
                     const response = await this.makeRequest('/billing/stats');
-                    this.updateBillingStats(response.stats);
+                    this.updateBillingStats(response);
                 } catch (error) {
                     this.showAlert('Error cargando estadísticas de facturación: ' + error.message, 'danger');
                 }
@@ -1015,7 +1047,9 @@
             }
 
             async makeRequest(endpoint, options = {}) {
-                const url = `http://localhost:4000/api${endpoint}`;
+                // Asegurar que el endpoint comience con /api
+                const cleanEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+                const url = `http://localhost:4000${cleanEndpoint}`;
                 
                 const token = this.authService.getToken();
                 if (!token) {
@@ -1031,13 +1065,16 @@
                     ...options
                 };
 
+                console.log('🔍 Making request to:', url);
                 const response = await fetch(url, config);
                 const data = await response.json();
 
                 if (!response.ok) {
+                    console.error('❌ API Error:', data);
                     throw new Error(data.error || 'Error en la petición');
                 }
 
+                console.log('✅ API Response:', data);
                 return data;
             }
 
@@ -1106,6 +1143,7 @@
                 if (whatsappSection) {
                     whatsappSection.style.display = 'block';
                     this.loadBranchesWhatsAppStatus();
+                    this.loadWhatsAppHealth(); // Cargar métricas de salud
                 } else {
                     this.showAlert('Sección de WhatsApp no encontrada', 'warning');
                 }
@@ -1113,87 +1151,190 @@
 
             async loadBranchesWhatsAppStatus() {
                 try {
-                    const response = await this.makeRequest('/api/branch-whatsapp/branches/status');
+                    const response = await this.makeRequest('/branch-whatsapp/branches/status');
                     this.updateBranchesWhatsAppList(response.branches);
                 } catch (error) {
                     this.showAlert('Error cargando estado de WhatsApp de sucursales: ' + error.message, 'danger');
                 }
             }
 
+            // Función para cargar métricas de salud del pool
+            async loadWhatsAppHealth() {
+                try {
+                    const response = await this.makeRequest('/branch-whatsapp/health', 'GET');
+                    if (response.success) {
+                        this.updateHealthMetrics(response.data);
+                    } else {
+                        console.error('Error cargando métricas de salud:', response.error);
+                    }
+                } catch (error) {
+                    console.error('Error cargando métricas de salud:', error);
+                }
+            }
+
+            // Función para actualizar métricas de salud en el dashboard
+            updateHealthMetrics(healthData) {
+                const healthContainer = document.getElementById('whatsappHealthMetrics');
+                if (!healthContainer) return;
+
+                const { health, totalBranches, connectedBranches, timestamp } = healthData;
+                
+                let healthHTML = `
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5>${totalBranches}</h5>
+                                    <small>Total Sucursales</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5>${connectedBranches}</h5>
+                                    <small>Conectadas</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5>${totalBranches - connectedBranches}</h5>
+                                    <small>Desconectadas</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5>${Math.round((connectedBranches / totalBranches) * 100)}%</h5>
+                                    <small>Disponibilidad</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Sucursal</th>
+                                    <th>Estado</th>
+                                    <th>Última Conexión</th>
+                                    <th>QR Disponible</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                health.forEach(branch => {
+                    const statusBadge = this.getStatusBadge(branch.status);
+                    const lastReady = branch.lastReadyAt ? new Date(branch.lastReadyAt).toLocaleString('es-CO') : 'Nunca';
+                    const qrStatus = branch.hasQR ? '<span class="badge bg-warning">Sí</span>' : '<span class="badge bg-secondary">No</span>';
+                    
+                    healthHTML += `
+                        <tr>
+                            <td>${branch.branchId}</td>
+                            <td>${statusBadge}</td>
+                            <td>${lastReady}</td>
+                            <td>${qrStatus}</td>
+                        </tr>
+                    `;
+                });
+
+                healthHTML += `
+                            </tbody>
+                        </table>
+                        <small class="text-muted">Última actualización: ${new Date(timestamp).toLocaleString('es-CO')}</small>
+                    </div>
+                `;
+
+                healthContainer.innerHTML = healthHTML;
+            }
+
+            // Función para obtener badge de estado
+            getStatusBadge(status) {
+                if (status === 'ready') {
+                    return '<span class="badge bg-success">Conectado</span>';
+                } else if (status === 'qr') {
+                    return '<span class="badge bg-warning">QR Listo</span>';
+                } else if (status === 'init') {
+                    return '<span class="badge bg-info">Inicializando</span>';
+                } else if (status.includes('disconnected')) {
+                    return '<span class="badge bg-danger">Desconectado</span>';
+                } else if (status.includes('auth_failure')) {
+                    return '<span class="badge bg-danger">Error Auth</span>';
+                } else {
+                    return '<span class="badge bg-secondary">Desconocido</span>';
+                }
+            }
+
+            // Función para actualizar la lista de sucursales con mejor información
             updateBranchesWhatsAppList(branches) {
                 const container = document.getElementById('branchesWhatsAppList');
                 if (!container) return;
 
-                if (branches.length === 0) {
+                if (!branches || branches.length === 0) {
                     container.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-store fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No hay sucursales configuradas</h5>
-                            <p class="text-muted">Crea una sucursal primero para configurar su WhatsApp</p>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay sucursales configuradas.
                         </div>
                     `;
                     return;
                 }
 
-                container.innerHTML = branches.map(branch => `
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-md-3">
-                                    <h6 class="mb-1">${branch.name}</h6>
-                                    <small class="text-muted">${branch.whatsapp.phone_number || 'Sin número configurado'}</small>
-                                </div>
-                                <div class="col-md-2">
-                                    <span class="badge bg-${this.getWhatsAppStatusColor(branch.whatsapp.status)}">
-                                        ${this.getWhatsAppStatusText(branch.whatsapp.status)}
-                                    </span>
-                                </div>
-                                <div class="col-md-3">
-                                    <small class="text-muted">
-                                        ${branch.whatsapp.last_connection ? 
-                                            `Última conexión: ${new Date(branch.whatsapp.last_connection).toLocaleDateString('es-CO')}` : 
-                                            'Nunca conectado'
-                                        }
-                                    </small>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        ${branch.whatsapp.status === 'disconnected' ? 
-                                            `<button class="btn btn-success" onclick="dashboard.initializeBranchWhatsApp('${branch.id}')">
-                                                <i class="fas fa-plug me-1"></i>Conectar
-                                            </button>` : 
-                                            `<button class="btn btn-danger" onclick="dashboard.disconnectBranchWhatsApp('${branch.id}')">
-                                                <i class="fas fa-times me-1"></i>Desconectar
-                                            </button>`
-                                        }
-                                        ${branch.whatsapp.status === 'connected' ? 
-                                            `<button class="btn btn-warning" onclick="dashboard.logoutBranchWhatsApp('${branch.id}')">
-                                                <i class="fas fa-sign-out-alt me-1"></i>Desvincular
-                                            </button>` : ''
-                                        }
-                                        ${branch.whatsapp.status === 'qr_ready' ? 
-                                            `<button class="btn btn-info" onclick="dashboard.showBranchQR('${branch.id}')">
-                                                <i class="fas fa-qrcode me-1"></i>Ver QR
-                                            </button>` : ''
-                                        }
+                let html = '';
+                branches.forEach(branch => {
+                    const whatsapp = branch.whatsapp || {};
+                    const statusBadge = this.getStatusBadge(whatsapp.status);
+                    const lastConnection = whatsapp.lastReadyAt ? 
+                        new Date(whatsapp.lastReadyAt).toLocaleString('es-CO') : 'Nunca';
+                    const phoneNumber = whatsapp.phone_number || 'No configurado';
+
+                    html += `
+                        <div class="card mb-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-store"></i> ${branch.name}
+                                </h6>
+                                ${statusBadge}
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Número:</strong> ${phoneNumber}</p>
+                                        <p><strong>Última conexión:</strong> ${lastConnection}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="btn-group-vertical w-100" role="group">
+                                            <button class="btn btn-sm btn-success mb-1" 
+                                                    onclick="initializeBranchWhatsApp('${branch.id}')"
+                                                    ${whatsapp.status === 'ready' ? 'disabled' : ''}>
+                                                <i class="fas fa-plug"></i> Conectar
+                                            </button>
+                                            <button class="btn btn-sm btn-warning mb-1" 
+                                                    onclick="disconnectBranchWhatsApp('${branch.id}')"
+                                                    ${whatsapp.status !== 'ready' ? 'disabled' : ''}>
+                                                <i class="fas fa-unlink"></i> Desconectar
+                                            </button>
+                                            <button class="btn btn-sm btn-danger mb-1" 
+                                                    onclick="logoutBranchWhatsApp('${branch.id}')">
+                                                <i class="fas fa-sign-out-alt"></i> Desvincular
+                                            </button>
+                                            <button class="btn btn-sm btn-info" 
+                                                    onclick="showBranchQR('${branch.id}')"
+                                                    ${whatsapp.status !== 'qr' ? 'disabled' : ''}>
+                                                <i class="fas fa-qrcode"></i> Ver QR
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            ${branch.whatsapp.status === 'qr_ready' && branch.whatsapp.qr_code ? 
-                                `<div class="mt-3 text-center" id="qr-${branch.id}">
-                                    <h6>Escanea el código QR para ${branch.name}:</h6>
-                                    <img src="${branch.whatsapp.qr_code}" alt="QR Code" style="max-width: 200px; border: 2px solid #ddd; border-radius: 8px;">
-                                    <div class="mt-2">
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Abre WhatsApp en tu teléfono → Menú → WhatsApp Web → Escanea el código
-                                        </small>
-                                    </div>
-                                </div>` : ''
-                            }
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                });
+
+                container.innerHTML = html;
             }
 
             // Funciones para manejar WhatsApp por sucursal
@@ -1202,7 +1343,7 @@
                     const phoneNumber = prompt('Ingresa el número de WhatsApp para esta sucursal (ej: +573001234567):');
                     if (!phoneNumber) return;
 
-                    const response = await this.makeRequest(`/api/branch-whatsapp/branch/${branchId}/initialize`, {
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/initialize`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1220,7 +1361,7 @@
 
             async disconnectBranchWhatsApp(branchId) {
                 try {
-                    const response = await this.makeRequest(`/api/branch-whatsapp/branch/${branchId}/disconnect`, {
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/disconnect`, {
                         method: 'POST'
                     });
                     
@@ -1235,7 +1376,7 @@
             async logoutBranchWhatsApp(branchId) {
                 try {
                     if (confirm('¿Estás seguro de que quieres desvincular la sesión de WhatsApp de esta sucursal? Esto requerirá escanear el QR nuevamente.')) {
-                        const response = await this.makeRequest(`/api/branch-whatsapp/branch/${branchId}/logout`, {
+                        const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/logout`, {
                             method: 'POST'
                         });
                         
@@ -1249,7 +1390,7 @@
 
             async showBranchQR(branchId) {
                 try {
-                    const response = await this.makeRequest(`/api/branch-whatsapp/branch/${branchId}/qr`);
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/qr`);
                     
                     // Crear modal para mostrar QR más grande
                     const modal = document.createElement('div');
@@ -1259,12 +1400,11 @@
                         <div class="modal-dialog modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Código QR para WhatsApp</h5>
+                                    <h5 class="modal-title" id="qrModalTitle">Código QR para WhatsApp</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body text-center">
-                                    <h6>Escanea este código QR con tu WhatsApp:</h6>
-                                    <img src="${response.qrDataUrl}" alt="QR Code" style="max-width: 300px; border: 2px solid #ddd; border-radius: 8px;">
+                                    <img src="" alt="QR Code" id="qrModalImage" style="max-width: 300px; border: 2px solid #ddd; border-radius: 8px;">
                                     <div class="mt-3">
                                         <small class="text-muted">
                                             <i class="fas fa-info-circle me-1"></i>
@@ -1295,29 +1435,124 @@
                 }
             }
 
+            // Función para enviar mensaje de prueba
+            async sendTestMessage(branchId) {
+                const phoneNumber = prompt('Ingresa el número de teléfono para enviar mensaje de prueba (ej: +573001234567):');
+                if (!phoneNumber) return;
 
+                const message = prompt('Ingresa el mensaje de prueba:');
+                if (!message) return;
 
-            getWhatsAppStatusText(status) {
-                const statusMap = {
-                    'connected': 'Conectado',
-                    'disconnected': 'Desconectado',
-                    'qr_ready': 'QR Listo',
-                    'auth_failed': 'Error de Autenticación',
-                    'connecting': 'Conectando...'
-                };
-                return statusMap[status] || status;
+                try {
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/send`, 'POST', {
+                        to: phoneNumber,
+                        message: message
+                    });
+
+                    if (response.success) {
+                        this.showAlert('Mensaje de prueba enviado exitosamente', 'success');
+                    } else {
+                        this.showAlert('Error enviando mensaje: ' + response.error, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error enviando mensaje de prueba:', error);
+                    this.showAlert('Error enviando mensaje de prueba', 'danger');
+                }
             }
 
-            getWhatsAppStatusColor(status) {
-                const colorMap = {
-                    'connected': 'success',
-                    'disconnected': 'secondary',
-                    'qr_ready': 'warning',
-                    'auth_failed': 'danger',
-                    'connecting': 'info'
-                };
-                return colorMap[status] || 'secondary';
+            // Función para configurar sucursal
+            async configureBranch(branchId) {
+                const systemNumber = prompt('Número del sistema (que atiende clientes):');
+                const ordersNumber = prompt('Número de cocina (recibe pedidos):');
+
+                if (!systemNumber && !ordersNumber) return;
+
+                try {
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/config`, 'POST', {
+                        systemNumber: systemNumber || undefined,
+                        ordersForwardNumber: ordersNumber || undefined
+                    });
+
+                    if (response.success) {
+                        this.showAlert('Configuración actualizada exitosamente', 'success');
+                        this.loadBranchesWhatsAppStatus(); // Recargar estado
+                    } else {
+                        this.showAlert('Error actualizando configuración: ' + response.error, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error configurando sucursal:', error);
+                    this.showAlert('Error configurando sucursal', 'danger');
+                }
             }
+
+            // Función para actualizar la lista de sucursales con mejor información
+            updateBranchesWhatsAppList(branches) {
+                const container = document.getElementById('branchesWhatsAppList');
+                if (!container) return;
+
+                if (!branches || branches.length === 0) {
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay sucursales configuradas.
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                branches.forEach(branch => {
+                    const whatsapp = branch.whatsapp || {};
+                    const statusBadge = this.getStatusBadge(whatsapp.status);
+                    const lastConnection = whatsapp.lastReadyAt ? 
+                        new Date(whatsapp.lastReadyAt).toLocaleString('es-CO') : 'Nunca';
+                    const phoneNumber = whatsapp.phone_number || 'No configurado';
+
+                    html += `
+                        <div class="card mb-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-store"></i> ${branch.name}
+                                </h6>
+                                ${statusBadge}
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Número:</strong> ${phoneNumber}</p>
+                                        <p><strong>Última conexión:</strong> ${lastConnection}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="btn-group-vertical w-100" role="group">
+                                            <button class="btn btn-sm btn-success mb-1" 
+                                                    onclick="initializeBranchWhatsApp('${branch.id}')"
+                                                    ${whatsapp.status === 'ready' ? 'disabled' : ''}>
+                                                <i class="fas fa-plug"></i> Conectar
+                                            </button>
+                                            <button class="btn btn-sm btn-warning mb-1" 
+                                                    onclick="disconnectBranchWhatsApp('${branch.id}')"
+                                                    ${whatsapp.status !== 'ready' ? 'disabled' : ''}>
+                                                <i class="fas fa-unlink"></i> Desconectar
+                                            </button>
+                                            <button class="btn btn-sm btn-danger mb-1" 
+                                                    onclick="logoutBranchWhatsApp('${branch.id}')">
+                                                <i class="fas fa-sign-out-alt"></i> Desvincular
+                                            </button>
+                                            <button class="btn btn-sm btn-info" 
+                                                    onclick="showBranchQR('${branch.id}')"
+                                                    ${whatsapp.status !== 'qr' ? 'disabled' : ''}>
+                                                <i class="fas fa-qrcode"></i> Ver QR
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
         }
 
         // Initialize dashboard
