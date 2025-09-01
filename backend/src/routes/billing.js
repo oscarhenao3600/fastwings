@@ -205,32 +205,40 @@ router.post('/send/:branchId',
 // Obtener estadísticas de facturación
 router.get('/stats', async (req, res) => {
   try {
-    let baseQuery = Order.find();
+    let filter = {};
     
     // Filtrar por sucursal según el rol del usuario
     if (req.user.role === 'branch_user' || req.user.role === 'admin') {
-      baseQuery = baseQuery.where('branch_id', req.user.branch_id);
+      filter.branch_id = req.user.branch_id;
     }
 
-    const [totalOrders] = await baseQuery.countDocuments();
-    const [invoicedOrders] = await baseQuery.where('invoice_path').countDocuments();
-    const [pendingInvoicing] = await baseQuery
-      .where('status', 'confirmed')
-      .whereNull('invoice_path')
-      .countDocuments();
+    const totalOrders = await Order.countDocuments(filter);
+    const invoicedOrders = await Order.countDocuments({ ...filter, invoice_path: { $exists: true, $ne: null } });
+    const pendingInvoicing = await Order.countDocuments({ 
+      ...filter, 
+      status: 'confirmed',
+      invoice_path: { $exists: false }
+    });
 
-    const totalRevenue = await baseQuery.sum('total_amount');
-    const invoicedRevenue = await baseQuery
-      .whereNotNull('invoice_path')
-      .sum('total_amount');
+    // Calcular ingresos totales
+    const totalRevenueResult = await Order.aggregate([
+      { $match: filter },
+      { $group: { _id: null, total: { $sum: '$total_amount' } } }
+    ]);
+
+    // Calcular ingresos facturados
+    const invoicedRevenueResult = await Order.aggregate([
+      { $match: { ...filter, invoice_path: { $exists: true, $ne: null } } },
+      { $group: { _id: null, total: { $sum: '$total_amount' } } }
+    ]);
 
     res.json({
       stats: {
-        totalOrders: totalOrders,
-        invoicedOrders: invoicedOrders,
-        pendingInvoicing: pendingInvoicing,
-        totalRevenue: totalRevenue || 0,
-        invoicedRevenue: invoicedRevenue || 0
+        totalOrders,
+        invoicedOrders,
+        pendingInvoicing,
+        totalRevenue: totalRevenueResult.length > 0 ? totalRevenueResult[0].total || 0 : 0,
+        invoicedRevenue: invoicedRevenueResult.length > 0 ? invoicedRevenueResult[0].total || 0 : 0
       }
     });
 

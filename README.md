@@ -1,102 +1,69 @@
+# FastWings v4 - Sistema de Pedidos WhatsApp
 
-# FastWings v4 (Español) — Sistema Completo de Pedidos WhatsApp
+Sistema completo de gestión de pedidos con integración de WhatsApp por sucursal, desarrollado en Node.js, Express y MongoDB.
 
-🚀 **Sistema completo de pedidos por WhatsApp con panel administrador en Español**
+## 🚀 Características Principales
 
-## ✨ Características Principales
+### ✅ Sistema de WhatsApp por Sucursal
+- **WhatsApp independiente** para cada sucursal
+- **QR en Frontend** (no en consola)
+- **Sesiones persistentes** (escaneo único)
+- **Botón de desvincular** para cambiar números
+- **Gestión completa** de conexiones
 
-- **Backend completo** con Node.js + Express
-- **Base de datos** MongoDB con Mongoose
-- **Frontend responsive** con Bootstrap 5
-- **Sistema de roles** (Super Admin, Admin, Usuario Sucursal)
+### ✅ Funcionalidades del Sistema
+- **Dashboard completo** con estadísticas
 - **Gestión de sucursales** y usuarios
-- **Procesamiento de pedidos** por WhatsApp
-- **Generación automática** de facturas PDF
-- **Envío de facturas** por WhatsApp
-- **Dashboard completo** con estadísticas en tiempo real
+- **Sistema de autenticación** JWT
+- **API REST** completa
+- **Frontend responsive** con Bootstrap
 
-## 🏗️ Arquitectura del Sistema
+## 🛠️ Tecnologías Utilizadas
 
-```
-fastwings_v4_es_whatsapp_invoice/
-├── backend/                 # Servidor Node.js
-│   ├── src/
-│   │   ├── models/         # Modelos de MongoDB
-│   │   ├── routes/         # Rutas de la API
-│   │   ├── middlewares/    # Middlewares de autenticación
-│   │   ├── services/       # Servicios de negocio
-│   │   └── config/         # Configuración de BD
-│   ├── uploads/            # Archivos subidos (logos, comprobantes)
-├── frontend-admin/          # Panel de administración
-│   ├── index.html          # Login
-│   ├── super.html          # Dashboard Super Admin
-│   ├── admin.html          # Dashboard Admin
-│   └── branch.html         # Dashboard Usuario Sucursal
-└── README.md               # Este archivo
-```
+### Backend
+- **Node.js** - Runtime de JavaScript
+- **Express.js** - Framework web
+- **MongoDB** - Base de datos NoSQL
+- **Mongoose** - ODM para MongoDB
+- **JWT** - Autenticación
+- **WhatsApp Web.js** - Integración WhatsApp
+- **Puppeteer** - Automatización de navegador
 
-## 🚀 Instalación Rápida
+### Frontend
+- **HTML5** - Estructura
+- **CSS3** - Estilos
+- **JavaScript (ES6+)** - Lógica del cliente
+- **Bootstrap 5** - Framework CSS
+- **Font Awesome** - Iconos
 
-### 1. Prerrequisitos
-- Node.js 16+ 
-- MongoDB 4.4+
-- npm o yarn
+## 📋 Requisitos Previos
 
-### 2. Clonar y configurar
+- **Node.js** (v16 o superior)
+- **npm** o **yarn**
+- **MongoDB** (opcional, el sistema funciona sin él)
+
+## 🔧 Instalación
+
+### 1. Clonar el repositorio
 ```bash
-git clone <tu-repositorio>
+git clone <url-del-repositorio>
 cd fastwings_v4_es_whatsapp_invoice
 ```
 
-### 3. Configurar Base de Datos
-```bash
-# Instalar MongoDB (si no lo tienes)
-# Ubuntu/Debian:
-sudo apt-get install mongodb
-
-# macOS:
-brew install mongodb-community
-
-# Windows: Descargar desde mongodb.com
-
-# Iniciar MongoDB
-sudo systemctl start mongod  # Linux
-brew services start mongodb-community  # macOS
-```
-
-### 4. Configurar variables de entorno
-```bash
-cd backend
-copy env.example .env
-# Editar .env con tus credenciales
-```
-
-### 5. Instalar dependencias y configurar BD
+### 2. Instalar dependencias
 ```bash
 cd backend
 npm install
-npm run seed
 ```
 
-### 6. Iniciar el sistema
-```bash
-# Terminal 1: Backend
-npm run dev
-
-# Terminal 2: Frontend (opcional, puedes abrir directamente los archivos HTML)
-cd ../frontend-admin
-# Abrir index.html en tu navegador
-```
-
-## 🔧 Configuración Detallada
-
-### Variables de Entorno (.env)
+### 3. Configurar variables de entorno
+Crear archivo `.env` en la carpeta `backend`:
 ```env
-# Servidor
+# Configuración del servidor
 PORT=4000
 NODE_ENV=development
 
-# Base de Datos MongoDB
+# Base de datos (MongoDB)
 MONGODB_URI=mongodb://localhost:27017/fastwings
 
 # JWT
@@ -106,151 +73,166 @@ JWT_SECRET=tu_jwt_secret_super_seguro_aqui_cambiar_en_produccion
 SUPER_ADMIN_EMAIL=admin@fastwings.com
 SUPER_ADMIN_PASSWORD=admin123
 SUPER_ADMIN_NAME=Administrador Principal
+
+# WhatsApp
+WHATSAPP_PHONE=+573001234567
+
+# Email (opcional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu_email@gmail.com
+SMTP_PASS=tu_password_de_aplicacion
+
+# Branding
+BILLING_LOGO=uploads/logo.png
+BILLING_FOOTER=FastWings - Sistema de Pedidos WhatsApp
 ```
 
-### Base de Datos
-El sistema crea automáticamente las siguientes colecciones en MongoDB:
-- **`branches`**: Sucursales del negocio
-- **`users`**: Usuarios del sistema con roles
-- **`orders`**: Pedidos de los clientes
+### 4. Iniciar el servidor
+```bash
+# Opción 1: Servidor completo (requiere MongoDB)
+npm start
 
-## 👥 Roles y Permisos
+# Opción 2: Servidor de prueba (sin MongoDB)
+node complete-server.js
+```
 
-### 🔴 Super Admin
-- Gestión completa de sucursales
-- Crear y gestionar usuarios
-- Acceso total al sistema
-- Estadísticas globales
+## 🌐 Acceso al Sistema
 
-### 🟡 Admin
-- Gestionar pedidos de su sucursal
-- Generar facturas
-- Ver estadísticas de sucursal
-- Gestionar usuarios de sucursal
+### URLs Disponibles
+- **Frontend Principal:** `http://localhost:4000/frontend-admin/super.html`
+- **Página de Prueba:** `http://localhost:4000/frontend-admin/test-whatsapp-branch.html`
+- **API:** `http://localhost:4000/`
 
-### 🟢 Usuario Sucursal
-- Ver pedidos de su sucursal
-- Actualizar estados de pedidos
-- Generar facturas básicas
+### Credenciales de Acceso
+- **Email:** `admin@fastwings.com`
+- **Password:** `admin123`
 
-## 📱 Funcionalidades de WhatsApp
+## 📱 Configuración de WhatsApp por Sucursal
 
-### Webhook de Entrada
-- Recibe mensajes de WhatsApp
-- Procesa pedidos automáticamente
-- Interpreta texto y imágenes
-- Crea pedidos en la base de datos
+### 1. Acceder al Sistema
+1. Abrir `http://localhost:4000/frontend-admin/super.html`
+2. Hacer login con las credenciales
+3. Ir a la sección "WhatsApp" en el menú lateral
 
-### Envío de Facturas
-- Genera PDF automáticamente
-- Envía por WhatsApp al cliente
-- Notificaciones de estado
+### 2. Inicializar WhatsApp
+1. Hacer clic en "Conectar" en la sucursal deseada
+2. Ingresar el número de WhatsApp (ej: `+573001234567`)
+3. Se generará un QR en el frontend
+4. Escanear el QR con WhatsApp del número especificado
 
-## 🎯 Endpoints Principales
+### 3. Gestión de Conexiones
+- **Ver Estado:** Muestra el estado actual de cada sucursal
+- **Conectar:** Inicializa WhatsApp para una sucursal
+- **Desconectar:** Desconecta WhatsApp temporalmente
+- **Desvincular:** Elimina la sesión completamente
+- **Ver QR:** Muestra el código QR en un modal
+
+## 🏗️ Estructura del Proyecto
+
+```
+fastwings_v4_es_whatsapp_invoice/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── database.js
+│   │   ├── middlewares/
+│   │   │   └── auth.js
+│   │   ├── models/
+│   │   │   ├── Branch.js
+│   │   │   ├── Order.js
+│   │   │   ├── User.js
+│   │   │   └── WhatsAppConfig.js
+│   │   ├── routes/
+│   │   │   ├── admin.js
+│   │   │   ├── auth.js
+│   │   │   ├── billing.js
+│   │   │   ├── branchWhatsapp.js
+│   │   │   ├── orders.js
+│   │   │   ├── whatsapp.js
+│   │   │   └── whatsappWebhook.js
+│   │   ├── services/
+│   │   │   ├── adminService.js
+│   │   │   ├── branchWhatsappService.js
+│   │   │   ├── billingService.js
+│   │   │   ├── mailService.js
+│   │   │   ├── ocrService.js
+│   │   │   ├── orderService.js
+│   │   │   ├── paymentValidation.js
+│   │   │   ├── twilioProvider.js
+│   │   │   ├── whatsappProvider.js
+│   │   │   ├── whatsappService.js
+│   │   │   └── whatsappWebJsProvider.js
+│   │   └── index.js
+│   ├── package.json
+│   └── complete-server.js
+├── frontend-admin/
+│   ├── super.html
+│   ├── test-whatsapp-branch.html
+│   ├── admin.html
+│   ├── branch.html
+│   └── index.html
+├── uploads/
+├── .gitignore
+└── README.md
+```
+
+## 🔌 API Endpoints
 
 ### Autenticación
-- `POST /api/auth/login` - Login de usuarios
-- `GET /api/auth/profile` - Perfil del usuario
-- `PUT /api/auth/change-password` - Cambiar contraseña
+- `POST /api/auth/login` - Login de usuario
 
-### Administración
-- `GET /api/admin/branches` - Listar sucursales
+### Dashboard
+- `GET /api/admin/dashboard/stats` - Estadísticas del dashboard
+
+### Sucursales
+- `GET /api/admin/branches` - Obtener sucursales
 - `POST /api/admin/branches` - Crear sucursal
-- `GET /api/admin/users` - Listar usuarios
-- `POST /api/admin/users` - Crear usuario
+- `PUT /api/admin/branches/:id` - Actualizar sucursal
+- `DELETE /api/admin/branches/:id` - Eliminar sucursal
 
-### Pedidos
-- `POST /api/orders` - Crear pedido
-- `GET /api/orders` - Listar pedidos
-- `PATCH /api/orders/:id/status` - Actualizar estado
-- `GET /api/orders/dashboard/stats` - Estadísticas
+### WhatsApp por Sucursal
+- `GET /api/branch-whatsapp/branches/status` - Estado de WhatsApp de todas las sucursales
+- `GET /api/branch-whatsapp/branch/:branchId/status` - Estado de WhatsApp de una sucursal
+- `POST /api/branch-whatsapp/branch/:branchId/initialize` - Inicializar WhatsApp
+- `POST /api/branch-whatsapp/branch/:branchId/disconnect` - Desconectar WhatsApp
+- `POST /api/branch-whatsapp/branch/:branchId/logout` - Desvincular WhatsApp
+- `GET /api/branch-whatsapp/branch/:branchId/qr` - Obtener código QR
 
-### WhatsApp
-- `POST /api/whatsapp/webhook` - Webhook de entrada
-- `GET /api/whatsapp/test` - Probar conexión
+## 🚨 Notas Importantes
 
-### Facturación
-- `POST /api/billing/generate/:orderId` - Generar factura
-- `POST /api/billing/send/:branchId` - Enviar facturas
-- `GET /api/billing/stats` - Estadísticas de facturación
+### WhatsApp Web.js
+- **Sesiones persistentes:** Una vez escaneado el QR, la sesión se mantiene
+- **Archivos de sesión:** Se guardan en `.wwebjs_auth/`
+- **Desvincular:** Elimina completamente la sesión y requiere nuevo escaneo
 
-## 🎨 Frontend
+### Seguridad
+- **Cambiar JWT_SECRET** en producción
+- **Configurar HTTPS** en producción
+- **Validar números** de WhatsApp antes de conectar
 
-### Características
-- **Responsive design** con Bootstrap 5
-- **Iconos FontAwesome** para mejor UX
-- **Temas personalizados** por rol
-- **Dashboard interactivo** con estadísticas
-- **Modales** para acciones rápidas
+### Rendimiento
+- **MongoDB:** Recomendado para producción
+- **Servidor de prueba:** Funciona sin base de datos para desarrollo
 
-### Navegación
-- **Login único** con redirección por rol
-- **Sidebar** con navegación intuitiva
-- **Breadcrumbs** para orientación
-- **Alertas** para feedback del usuario
+## 🤝 Contribución
 
-## 🧪 Testing y Demo
+1. Fork el proyecto
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir un Pull Request
 
-### Probar el Sistema
-```bash
-# 1. Simular pedido por WhatsApp
-curl -X POST http://localhost:4000/api/whatsapp/webhook \
-  -H "Content-Type: application/json" \
-  -d '{"from":"+573001234567","text":"Quiero 2 hamburguesas y 1 bebida"}'
+## 📄 Licencia
 
-# 2. Ver pedidos creados
-curl -H "Authorization: Bearer TU_TOKEN" \
-  http://localhost:4000/api/orders
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-# 3. Generar factura
-curl -X POST \
-  -H "Authorization: Bearer TU_TOKEN" \
-  http://localhost:4000/api/billing/generate/1
-```
+## 📞 Soporte
 
-### Credenciales de Demo
-- **Email**: admin@fastwings.com
-- **Password**: admin123
-- **Rol**: Super Admin
+Para soporte técnico o preguntas:
+- **Email:** admin@fastwings.com
+- **Documentación:** Ver archivos de configuración y comentarios en el código
 
-## 🚀 Despliegue en Producción
+---
 
-### 1. Configuración de Seguridad
-```env
-NODE_ENV=production
-JWT_SECRET=secret_muy_largo_y_complejo_aqui
-HTTPS=true
-```
-
-### 2. Base de Datos
-- Usar MongoDB en servidor dedicado
-- Configurar backups automáticos
-- Optimizar índices para producción
-
-### 3. Servidor
-- Usar PM2 o similar para gestión de procesos
-- Configurar Nginx como proxy reverso
-- Implementar rate limiting
-- Configurar logs y monitoreo
-
-### 4. WhatsApp en Producción
-- Integrar con proveedor oficial (Twilio, etc.)
-- Configurar webhooks seguros
-- Implementar manejo de errores robusto
-
-## 🐛 Solución de Problemas
-
-### Errores Comunes
-
-#### 1. Error de Conexión a BD
-```bash
-# Verificar que MongoDB esté corriendo
-mongo --version
-
-# Verificar credenciales en .env
-# Probar conexión manual
-mongo fastwings --eval "db.version()"
-```
-
-#### 2. Error de Migraciones
-```
+**Desarrollado con ❤️ para FastWings**

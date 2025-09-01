@@ -10,23 +10,11 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-env.sqlite
 
 # Database files
 *.db
 *.sqlite
 *.sqlite3
-fastwings.db
-
-# Uploads and generated files
-uploads/
-*.pdf
-*.jpg
-*.jpeg
-*.png
-*.gif
-*.bmp
-*.webp
 
 # Logs
 logs/
@@ -91,6 +79,10 @@ jspm_packages/
 # TernJS port file
 .tern-port
 
+# WhatsApp Web.js cache and auth
+.wwebjs_auth/
+.wwebjs_cache/
+
 # IDE files
 .vscode/
 .idea/
@@ -108,10 +100,14 @@ ehthumbs.db
 Thumbs.db
 
 # Temporary files
-tmp/
-temp/
+*.tmp
+*.temp
 
-# Build outputs
+# Uploads directory (if contains sensitive data)
+uploads/*
+!uploads/.gitkeep
+
+# Build directories
 dist/
 build/
 
