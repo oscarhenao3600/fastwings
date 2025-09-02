@@ -4,60 +4,131 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FastWings - Super Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .sidebar {
             min-height: 100vh;
-            background: #34495e;
+            background: #2c3e50;
         }
         .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            margin: 5px 10px;
-            transition: all 0.3s ease;
+            color: #ecf0f1;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: all 0.2s ease;
         }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
+        .sidebar .nav-link:hover {
             color: white;
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(3px);
+            background: #34495e;
+        }
+        .sidebar .nav-link.active {
+            background: #3498db;
+            color: white;
         }
         .main-content {
             background: #f8f9fa;
             min-height: 100vh;
         }
         .card {
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .card-header {
+            background: #f8f9fa;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .btn-whatsapp-connect {
+            background: #25d366;
             border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-3px);
-        }
-        .stat-card {
-            background: #34495e;
             color: white;
         }
-        .stat-card .stat-icon {
-            font-size: 2.5rem;
-            opacity: 0.8;
+        .btn-whatsapp-connect:hover {
+            background: #128c7e;
+            color: white;
         }
-        .table-responsive {
-            border-radius: 12px;
-            overflow: hidden;
+        .btn-whatsapp-disconnect {
+            background: #e74c3c;
+            border: none;
+            color: white;
         }
-        .btn-action {
+        .btn-whatsapp-disconnect:hover {
+            background: #c0392b;
+            color: white;
+        }
+        .btn-whatsapp-logout {
+            background: #9b59b6;
+            border: none;
+            color: white;
+        }
+        .btn-whatsapp-logout:hover {
+            background: #8e44ad;
+            color: white;
+        }
+        .btn-whatsapp-test {
+            background: #27ae60;
+            border: none;
+            color: white;
+        }
+        .btn-whatsapp-test:hover {
+            background: #229954;
+            color: white;
+        }
+        .btn-whatsapp-config {
+            background: #6c757d;
+            border: none;
+            color: white;
+        }
+        .btn-whatsapp-config:hover {
+            background: #5a6268;
+            color: white;
+        }
+        .btn-whatsapp-primary {
+            background: #007bff;
+            border: none;
+            color: white;
+        }
+        .btn-whatsapp-primary:hover {
+            background: #0056b3;
+            color: white;
+        }
+        .btn-whatsapp-secondary {
+            background: #6c757d;
+            border: none;
+            color: white;
+        }
+        .btn-whatsapp-secondary:hover {
+            background: #545b62;
+            color: white;
+        }
+        .btn-whatsapp-warning {
+            background: #ffc107;
+            border: none;
+            color: #212529;
+        }
+        .btn-whatsapp-warning:hover {
+            background: #e0a800;
+            color: #212529;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .qr-container {
+            background: white;
             border-radius: 8px;
-            padding: 8px 20px;
-            font-size: 0.9rem;
+            padding: 15px;
+            border: 1px solid #dee2e6;
         }
         .status-badge {
-            border-radius: 8px;
-            padding: 5px 15px;
             font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+        }
+        .alert-sm {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
         }
     </style>
 </head>
@@ -65,14 +136,11 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0">
-                <div class="sidebar p-3">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-wings fa-2x text-white mb-2"></i>
-                        <h5 class="text-white">FastWings</h5>
-                        <small class="text-white-50">Super Admin</small>
-                    </div>
-                    
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-wings me-2"></i>FastWings
+                    </h4>
                     <nav class="nav flex-column">
                         <a class="nav-link active" href="#" data-section="dashboard">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
@@ -95,8 +163,8 @@
                         <a class="nav-link" href="#" data-section="settings">
                             <i class="fas fa-cog me-2"></i>Configuración
                         </a>
-                        <hr class="text-white-50">
-                        <a class="nav-link" href="#" id="logoutBtn">
+                        <hr class="text-white-50 my-3">
+                        <a class="nav-link text-danger" href="#" onclick="dashboard.logout()">
                             <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
                         </a>
                     </nav>
@@ -104,290 +172,182 @@
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 px-0">
-                <div class="main-content p-4">
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="p-4">
                     <!-- Header -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 id="pageTitle">Dashboard</h2>
-                            <p class="text-muted mb-0">Bienvenido, <span id="userName">Admin</span></p>
+                            <p class="text-muted">Panel de administración de FastWings</p>
                         </div>
                         <div class="d-flex align-items-center">
-                            <span class="badge bg-success me-2">Super Admin</span>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user me-2"></i>Perfil
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" id="profileBtn">
-                                        <i class="fas fa-user-edit me-2"></i>Editar Perfil
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="#" id="changePasswordBtn">
-                                        <i class="fas fa-key me-2"></i>Cambiar Contraseña
-                                    </a></li>
-                                </ul>
-                            </div>
+                            <span class="me-3">
+                                <i class="fas fa-user-circle me-1"></i>
+                                <span id="userName">Administrador</span>
+                            </span>
                         </div>
                     </div>
-
-                    <!-- Alert Container -->
-                    <div id="alertContainer"></div>
 
                     <!-- Dashboard Section -->
                     <div id="dashboardSection">
-                        <!-- Stats Cards -->
-                        <div class="row mb-4">
-                            <div class="col-md-3">
-                                <div class="card stat-card">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h3 id="totalBranches">0</h3>
-                                                <p class="mb-0">Sucursales</p>
-                                            </div>
-                                            <div class="stat-icon">
-                                                <i class="fas fa-store"></i>
-                                            </div>
-                                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-store fa-2x text-primary mb-2"></i>
+                                        <h4 id="totalBranches">0</h4>
+                                        <p class="text-muted">Sucursales</p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card stat-card">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h3 id="totalUsers">0</h3>
-                                                <p class="mb-0">Usuarios</p>
-                                            </div>
-                                            <div class="stat-icon">
-                                                <i class="fas fa-users"></i>
-                                            </div>
-                                        </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-users fa-2x text-success mb-2"></i>
+                                        <h4 id="totalUsers">0</h4>
+                                        <p class="text-muted">Usuarios</p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card stat-card">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h3 id="totalOrders">0</h3>
-                                                <p class="mb-0">Pedidos</p>
-                                            </div>
-                                            <div class="stat-icon">
-                                                <i class="fas fa-shopping-cart"></i>
-                                            </div>
-                                        </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-shopping-cart fa-2x text-warning mb-2"></i>
+                                        <h4 id="totalOrders">0</h4>
+                                        <p class="text-muted">Pedidos</p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card stat-card">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h3 id="totalRevenue">$0</h3>
-                                                <p class="mb-0">Ingresos</p>
-                                            </div>
-                                            <div class="stat-icon">
-                                                <i class="fas fa-dollar-sign"></i>
-                                            </div>
-                                        </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-dollar-sign fa-2x text-info mb-2"></i>
+                                        <h4 id="totalRevenue">$0</h4>
+                                        <p class="text-muted">Ingresos</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Recent Orders -->
+                    <!-- Branches Section -->
+                    <div id="branchesSection" style="display: none;">
                         <div class="card">
-                            <div class="card-header bg-white">
+                            <div class="card-header">
                                 <h5 class="mb-0">
-                                    <i class="fas fa-clock me-2"></i>Pedidos Recientes
+                                    <i class="fas fa-store me-2"></i>Gestión de Sucursales
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Cliente</th>
-                                                <th>Sucursal</th>
-                                                <th>Total</th>
-                                                <th>Estado</th>
-                                                <th>Fecha</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="recentOrdersTable">
-                                            <!-- Orders will be loaded here -->
-                                        </tbody>
-                                    </table>
+                                <div id="branchesList">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-2">Cargando sucursales...</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Other Sections (initially hidden) -->
-                    <div id="branchesSection" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h3>Gestión de Sucursales</h3>
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#branchModal">
-                                <i class="fas fa-plus me-2"></i>Nueva Sucursal
-                            </button>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Nombre</th>
-                                                <th>Dirección</th>
-                                                <th>Teléfono</th>
-                                                <th>WhatsApp</th>
-                                                <th>Estado</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="branchesTable">
-                                            <!-- Branches will be loaded here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                    <!-- Users Section -->
                     <div id="usersSection" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h3>Gestión de Usuarios</h3>
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal">
-                                <i class="fas fa-plus me-2"></i>Nuevo Usuario
-                            </button>
-                        </div>
                         <div class="card">
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Nombre</th>
-                                                <th>Email</th>
-                                                <th>Rol</th>
-                                                <th>Sucursal</th>
-                                                <th>Estado</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="usersTable">
-                                            <!-- Users will be loaded here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="ordersSection" style="display: none;">
-                        <h3>Gestión de Pedidos</h3>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Cliente</th>
-                                                <th>Sucursal</th>
-                                                <th>Items</th>
-                                                <th>Total</th>
-                                                <th>Estado</th>
-                                                <th>Fecha</th>
-                                                <th>Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="ordersTable">
-                                            <!-- Orders will be loaded here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="billingSection" style="display: none;">
-                        <h3>Facturación</h3>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">Generar Facturas</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <p>Genera facturas para pedidos confirmados y envíalas por WhatsApp.</p>
-                                        <button class="btn btn-success" id="generateInvoicesBtn">
-                                            <i class="fas fa-file-pdf me-2"></i>Generar Facturas
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">Estadísticas de Facturación</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="billingStats">
-                                            <!-- Stats will be loaded here -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="whatsappSection" style="display: none;">
-                        <h3>WhatsApp por Sucursal</h3>
-                        <p class="text-muted">Cada sucursal puede tener su propio WhatsApp independiente.</p>
-                        
-                        <!-- Lista de Sucursales con WhatsApp -->
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0"><i class="fas fa-store me-2"></i>Sucursales y WhatsApp</h6>
-                                        <button class="btn btn-primary btn-sm" id="refreshBranchesBtn">
-                                            <i class="fas fa-sync me-1"></i>Actualizar
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="branchesWhatsAppList">
-                                            <!-- Las sucursales se cargarán aquí -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Métricas de Salud del Pool -->
-                        <div class="card mt-4">
                             <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Métricas de Salud del Pool</h6>
+                                <h5 class="mb-0">
+                                    <i class="fas fa-users me-2"></i>Gestión de Usuarios
+                                </h5>
                             </div>
-                            <div class="card-body" id="whatsappHealthMetrics">
-                                <!-- Métricas se cargarán aquí -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="settingsSection" style="display: none;">
-                        <h3>Configuración del Sistema</h3>
-                        <div class="card">
                             <div class="card-body">
-                                <p>Configuración general del sistema FastWings.</p>
-                                <!-- Add settings form here -->
+                                <div id="usersList">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-2">Cargando usuarios...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orders Section -->
+                    <div id="ordersSection" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-shopping-cart me-2"></i>Gestión de Pedidos
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="ordersList">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-2">Cargando pedidos...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Billing Section -->
+                    <div id="billingSection" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-file-invoice me-2"></i>Gestión de Facturación
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="billingStats">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-2">Cargando estadísticas...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WhatsApp Section -->
+                    <div id="whatsappSection" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-whatsapp me-2"></i>Gestión de WhatsApp por Sucursal
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="branchesWhatsAppList">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-2">Cargando estado de WhatsApp...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Section -->
+                    <div id="settingsSection" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-cog me-2"></i>Configuración del Sistema
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Configuración del sistema en desarrollo.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -396,267 +356,123 @@
         </div>
     </div>
 
-    <!-- Branch Modal -->
-    <div class="modal fade" id="branchModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="branchModalTitle">Nueva Sucursal</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="branchForm">
-                    <div class="modal-body">
-                        <input type="hidden" id="branchId">
-                        <div class="mb-3">
-                            <label for="branchName" class="form-label">Nombre</label>
-                            <input type="text" class="form-control" id="branchName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="branchAddress" class="form-label">Dirección</label>
-                            <textarea class="form-control" id="branchAddress" rows="2"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="branchPhone" class="form-label">Teléfono</label>
-                            <input type="text" class="form-control" id="branchPhone">
-                        </div>
-                        <div class="mb-3">
-                            <label for="branchWhatsApp" class="form-label">Número WhatsApp</label>
-                            <input type="text" class="form-control" id="branchWhatsApp" placeholder="+573001234567">
-                        </div>
-                        <div class="mb-3">
-                            <label for="branchLogo" class="form-label">Logo</label>
-                            <input type="file" class="form-control" id="branchLogo" accept="image/*">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- User Modal -->
-    <div class="modal fade" id="userModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="userModalTitle">Nuevo Usuario</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="userForm">
-                    <div class="modal-body">
-                        <input type="hidden" id="userId">
-                        <div class="mb-3">
-                            <label for="userName" class="form-label">Nombre</label>
-                            <input type="text" class="form-control" id="userName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="userEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="userEmail" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="userPassword" class="form-label">Contraseña</label>
-                            <input type="password" class="form-control" id="userPassword" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="userRole" class="form-label">Rol</label>
-                            <select class="form-select" id="userRole" required>
-                                <option value="">Seleccionar rol</option>
-                                <option value="admin">Admin</option>
-                                <option value="branch_user">Usuario de Sucursal</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="userBranch" class="form-label">Sucursal</label>
-                            <select class="form-select" id="userBranch" required>
-                                <option value="">Seleccionar sucursal</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- QR Modal -->
-    <div class="modal fade" id="qrModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="qrModalTitle">Código QR para WhatsApp</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img src="" alt="QR Code" id="qrModalImage" style="max-width: 300px; border: 2px solid #ddd; border-radius: 8px;">
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Abre WhatsApp en tu teléfono → Menú → WhatsApp Web → Escanea el código
-                        </small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Definir las clases JavaScript
-        class AuthService {
+        class SuperAdminDashboard {
             constructor() {
-                this.baseURL = 'http://localhost:4000/api';
-                this.token = localStorage.getItem('token');
-                this.user = JSON.parse(localStorage.getItem('user'));
+                this.currentSection = 'dashboard';
+                this.authService = {
+                    getToken: () => localStorage.getItem('token'),
+                    getUser: () => JSON.parse(localStorage.getItem('user') || '{}'),
+                    isAuthenticated: () => !!localStorage.getItem('token'),
+                    logout: () => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'index.html';
+                    }
+                };
             }
 
-            async login(email, password) {
+            async makeRequest(endpoint, options = {}) {
+                const cleanEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+                const url = `http://localhost:4000${cleanEndpoint}`;
+
+                const token = this.authService.getToken();
+                console.log('🔑 Token obtenido:', token ? 'Sí' : 'No');
+
+                if (!token) {
+                    console.error('❌ No hay token de autenticación');
+                    throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+                }
+
+                const config = {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                };
+
+                console.log('🔍 Making request to:', url);
+                console.log('📋 Request config:', config);
+
                 try {
-                    const response = await fetch(`${this.baseURL}/auth/login`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ email, password })
-                    });
+                    const response = await fetch(url, config);
+                    console.log('📡 Response status:', response.status);
+                    console.log('📡 Response headers:', response.headers);
 
                     const data = await response.json();
+                    console.log('📄 Response data:', data);
 
                     if (!response.ok) {
-                        throw new Error(data.error || 'Error en el login');
+                        console.error('❌ API Error:', data);
+                        throw new Error(data.error || 'Error en la petición');
                     }
 
-                    this.token = data.token;
-                    this.user = data.user;
-                    localStorage.setItem('token', this.token);
-                    localStorage.setItem('user', JSON.stringify(this.user));
-
+                    console.log('✅ API Response exitosa:', data);
                     return data;
                 } catch (error) {
+                    console.error('❌ Error en makeRequest:', error);
                     throw error;
                 }
             }
 
-            logout() {
-                this.token = null;
-                this.user = null;
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = 'index.html';
-            }
-
-            isAuthenticated() {
-                return !!this.token;
-            }
-
-            getUser() {
-                return this.user;
-            }
-
-            getToken() {
-                return this.token;
-            }
-
-            redirectToDashboard() {
-                if (!this.user) return;
-                
-                switch (this.user.role) {
-                    case 'super_admin':
-                        window.location.href = 'super.html';
-                        break;
-                    case 'admin':
-                        window.location.href = 'admin.html';
-                        break;
-                    case 'branch_user':
-                        window.location.href = 'branch.html';
-                        break;
-                    default:
-                        window.location.href = 'admin.html';
-                }
-            }
-        }
-
-        class SuperAdminDashboard {
-            constructor() {
-                this.authService = new AuthService();
-                this.currentSection = 'dashboard';
-                this.init();
-            }
-
-            init() {
-                if (!this.authService.isAuthenticated()) {
-                    window.location.href = 'index.html';
-                    return;
-                }
-
-                const user = this.authService.getUser();
-                if (user.role !== 'super_admin') {
-                    window.location.href = 'admin.html';
-                    return;
-                }
-
-                this.setupUserInfo();
-                this.bindEvents();
-                this.loadDashboard();
-            }
-
-            setupUserInfo() {
-                const user = this.authService.getUser();
-                document.getElementById('userName').textContent = user.name;
-            }
-
-            bindEvents() {
-                // Navigation
-                document.querySelectorAll('[data-section]').forEach(link => {
-                    link.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.showSection(link.dataset.section);
-                    });
-                });
-
-                // Logout
-                document.getElementById('logoutBtn').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.authService.logout();
-                });
-
-                // Forms
-                document.getElementById('branchForm').addEventListener('submit', (e) => this.handleBranchSubmit(e));
-                document.getElementById('userForm').addEventListener('submit', (e) => this.handleUserSubmit(e));
-
-                // Buttons
-                document.getElementById('generateInvoicesBtn').addEventListener('click', () => this.generateInvoices());
-
-                // WhatsApp por Sucursal Events
-                document.getElementById('refreshBranchesBtn').addEventListener('click', () => this.loadBranchesWhatsAppStatus());
-            }
-
             showSection(sectionName) {
-                // Hide all sections
-                document.querySelectorAll('[id$="Section"]').forEach(el => el.style.display = 'none');
-                
-                // Show selected section
-                document.getElementById(sectionName + 'Section').style.display = 'block';
-                
-                // Update navigation
-                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-                document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
-                
-                // Update page title
-                document.getElementById('pageTitle').textContent = this.getSectionTitle(sectionName);
-                
-                // Load section data
-                this.loadSectionData(sectionName);
-                
-                this.currentSection = sectionName;
+                console.log('🔄 Intentando cambiar a sección:', sectionName);
+
+                try {
+                    // Ocultar todas las secciones
+                    const allSections = ['dashboardSection', 'branchesSection', 'usersSection', 'ordersSection', 'billingSection', 'whatsappSection', 'settingsSection'];
+
+                    allSections.forEach(sectionId => {
+                        const section = document.getElementById(sectionId);
+                        if (section) {
+                            section.style.display = 'none';
+                            console.log('❌ Ocultando:', sectionId);
+                        }
+                    });
+
+                    // Mostrar la sección seleccionada
+                    const targetSectionId = sectionName + 'Section';
+                    const targetSection = document.getElementById(targetSectionId);
+
+                    if (targetSection) {
+                        targetSection.style.display = 'block';
+                        console.log('✅ Mostrando:', targetSectionId);
+
+                        // Actualizar navegación
+                        document.querySelectorAll('.nav-link').forEach(link => {
+                            link.classList.remove('active');
+                        });
+
+                        const activeLink = document.querySelector(`[data-section="${sectionName}"]`);
+                        if (activeLink) {
+                            activeLink.classList.add('active');
+                            console.log('🎯 Enlace activo:', activeLink.textContent.trim());
+                        }
+
+                        // Actualizar título
+                        const pageTitle = document.getElementById('pageTitle');
+                        if (pageTitle) {
+                            pageTitle.textContent = this.getSectionTitle(sectionName);
+                        }
+
+                        // Cargar datos de la sección
+                        this.loadSectionData(sectionName);
+
+                        this.currentSection = sectionName;
+                        console.log('✅ Sección cambiada exitosamente a:', sectionName);
+
+                    } else {
+                        console.error('❌ Sección no encontrada:', targetSectionId);
+                        alert('Error: Sección no encontrada - ' + targetSectionId);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Error cambiando sección:', error);
+                    alert('Error cambiando sección: ' + error.message);
+                }
             }
 
             getSectionTitle(sectionName) {
@@ -673,603 +489,485 @@
             }
 
             async loadSectionData(sectionName) {
-                switch (sectionName) {
-                    case 'dashboard':
-                        await this.loadDashboard();
-                        break;
-                    case 'branches':
-                        await this.loadBranches();
-                        break;
-                    case 'users':
-                        await this.loadUsers();
-                        break;
-                    case 'orders':
-                        await this.loadOrders();
-                        break;
-                    case 'billing':
-                        await this.loadBillingStats();
-                        break;
-                    case 'whatsapp':
-                        this.showWhatsAppSection();
-                        break;
+                try {
+                    switch (sectionName) {
+                        case 'dashboard':
+                            await this.loadDashboard();
+                            break;
+                        case 'branches':
+                            await this.loadBranches();
+                            break;
+                        case 'users':
+                            await this.loadUsers();
+                            break;
+                        case 'orders':
+                            await this.loadOrders();
+                            break;
+                        case 'billing':
+                            await this.loadBilling();
+                            break;
+                        case 'whatsapp':
+                            await this.loadWhatsApp();
+                            break;
+                        case 'settings':
+                            this.loadSettings();
+                            break;
+                    }
+                } catch (error) {
+                    console.error(`Error cargando ${sectionName}:`, error);
                 }
             }
 
             async loadDashboard() {
                 try {
-                    const response = await this.makeRequest('/admin/dashboard/stats');
-                    this.updateDashboardStats(response);
+                    console.log('🔄 Cargando dashboard...');
+                    const data = await this.makeRequest('/admin/dashboard/stats');
+                    console.log('📊 Datos del dashboard recibidos:', data);
+                    this.updateDashboardStats(data);
+                    console.log('✅ Dashboard actualizado correctamente');
                 } catch (error) {
-                    this.showAlert('Error cargando dashboard: ' + error.message, 'danger');
+                    console.error('❌ Error cargando dashboard:', error);
+                    document.getElementById('dashboardSection').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error cargando dashboard: ${error.message}
+                        </div>
+                    `;
                 }
             }
 
             updateDashboardStats(data) {
-                document.getElementById('totalBranches').textContent = data.totalBranches;
-                document.getElementById('totalUsers').textContent = data.totalUsers;
-                document.getElementById('totalOrders').textContent = data.totalOrders;
+                document.getElementById('totalBranches').textContent = data.totalBranches || 0;
+                document.getElementById('totalUsers').textContent = data.totalUsers || 0;
+                document.getElementById('totalOrders').textContent = data.totalOrders || 0;
                 document.getElementById('totalRevenue').textContent = `$${data.totalRevenue || 0}`;
-
-                // Update recent orders table
-                this.updateRecentOrdersTable(data.recentOrders || []);
-            }
-
-            updateRecentOrdersTable(orders) {
-                const tbody = document.getElementById('recentOrdersTable');
-                tbody.innerHTML = '';
-
-                orders.forEach(order => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>#${order.id}</td>
-                        <td>${order.customer_name}</td>
-                        <td>${order.branch_name}</td>
-                        <td>$${order.total_amount}</td>
-                        <td><span class="badge status-badge bg-${this.getStatusColor(order.status)}">${this.getStatusText(order.status)}</span></td>
-                        <td>${new Date(order.created_at).toLocaleDateString('es-CO')}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.viewOrder(${order.id})">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            }
-
-            getStatusColor(status) {
-                const colors = {
-                    pending: 'warning',
-                    confirmed: 'info',
-                    preparing: 'primary',
-                    ready: 'success',
-                    delivered: 'secondary',
-                    cancelled: 'danger'
-                };
-                return colors[status] || 'secondary';
-            }
-
-            getStatusText(status) {
-                const texts = {
-                    pending: 'Pendiente',
-                    confirmed: 'Confirmado',
-                    preparing: 'Preparando',
-                    ready: 'Listo',
-                    delivered: 'Entregado',
-                    cancelled: 'Cancelado'
-                };
-                return texts[status] || status;
             }
 
             async loadBranches() {
                 try {
-                    const response = await this.makeRequest('/admin/branches');
-                    this.updateBranchesTable(response.branches);
+                    const data = await this.makeRequest('/admin/branches');
+                    this.updateBranchesList(data.branches);
                 } catch (error) {
-                    this.showAlert('Error cargando sucursales: ' + error.message, 'danger');
+                    console.error('Error cargando sucursales:', error);
+                    document.getElementById('branchesList').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error cargando sucursales: ${error.message}
+                        </div>
+                    `;
                 }
             }
 
-            updateBranchesTable(branches) {
-                const tbody = document.getElementById('branchesTable');
-                tbody.innerHTML = '';
-
-                branches.forEach(branch => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${branch.name}</td>
-                        <td>${branch.address || '-'}</td>
-                        <td>${branch.phone || '-'}</td>
-                        <td>${branch.order_number || '-'}</td>
-                        <td>
-                            <span class="badge bg-${branch.is_active ? 'success' : 'danger'}">
-                                ${branch.is_active ? 'Activa' : 'Inactiva'}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.editBranch(${branch.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger btn-action" onclick="dashboard.deleteBranch(${branch.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
+            updateBranchesList(branches) {
+                const container = document.getElementById('branchesList');
+                if (!branches || branches.length === 0) {
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay sucursales configuradas.
+                        </div>
                     `;
-                    tbody.appendChild(row);
+                    return;
+                }
+
+                let html = '';
+                branches.forEach(branch => {
+                    html += `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6>${branch.name}</h6>
+                                <p class="text-muted">ID: ${branch.id}</p>
+                            </div>
+                        </div>
+                    `;
                 });
+
+                container.innerHTML = html;
             }
 
             async loadUsers() {
                 try {
-                    const response = await this.makeRequest('/admin/users');
-                    this.updateUsersTable(response.users);
-                    this.loadBranchesForUserForm();
+                    const data = await this.makeRequest('/admin/users');
+                    this.updateUsersList(data.users);
                 } catch (error) {
-                    this.showAlert('Error cargando usuarios: ' + error.message, 'danger');
+                    console.error('Error cargando usuarios:', error);
+                    document.getElementById('usersList').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error cargando usuarios: ${error.message}
+                        </div>
+                    `;
                 }
             }
 
-            updateUsersTable(users) {
-                const tbody = document.getElementById('usersTable');
-                tbody.innerHTML = '';
-
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${user.name}</td>
-                        <td>${user.email}</td>
-                        <td>
-                            <span class="badge bg-${this.getRoleColor(user.role)}">
-                                ${this.getRoleText(user.role)}
-                            </span>
-                        </td>
-                        <td>${user.branch_name || '-'}</td>
-                        <td>
-                            <span class="badge bg-${user.is_active ? 'success' : 'danger'}">
-                                ${user.is_active ? 'Activo' : 'Inactivo'}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.editUser(${user.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </td>
+            updateUsersList(users) {
+                const container = document.getElementById('usersList');
+                if (!users || users.length === 0) {
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay usuarios configurados.
+                        </div>
                     `;
-                    tbody.appendChild(row);
+                    return;
+                }
+
+                let html = '';
+                users.forEach(user => {
+                    html += `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6>${user.name}</h6>
+                                <p class="text-muted">${user.email} - ${user.role}</p>
+                            </div>
+                        </div>
+                    `;
                 });
-            }
 
-            getRoleColor(role) {
-                const colors = {
-                    super_admin: 'danger',
-                    admin: 'primary',
-                    branch_user: 'info'
-                };
-                return colors[role] || 'secondary';
-            }
-
-            getRoleText(role) {
-                const texts = {
-                    super_admin: 'Super Admin',
-                    admin: 'Admin',
-                    branch_user: 'Usuario Sucursal'
-                };
-                return texts[role] || role;
+                container.innerHTML = html;
             }
 
             async loadOrders() {
                 try {
-                    const response = await this.makeRequest('/orders');
-                    this.updateOrdersTable(response.orders);
+                    const data = await this.makeRequest('/orders');
+                    this.updateOrdersList(data.orders);
                 } catch (error) {
-                    this.showAlert('Error cargando pedidos: ' + error.message, 'danger');
-                }
-            }
-
-            updateOrdersTable(orders) {
-                const tbody = document.getElementById('ordersTable');
-                tbody.innerHTML = '';
-
-                orders.forEach(order => {
-                    const items = JSON.parse(order.items);
-                    const itemsText = items.map(item => `${item.quantity}x ${item.name}`).join(', ');
-                    
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>#${order.id}</td>
-                        <td>${order.customer_name}</td>
-                        <td>${order.branch_name}</td>
-                        <td>${itemsText}</td>
-                        <td>$${order.total_amount}</td>
-                        <td>
-                            <span class="badge status-badge bg-${this.getStatusColor(order.status)}">
-                                ${this.getStatusText(order.status)}
-                            </span>
-                        </td>
-                        <td>${new Date(order.created_at).toLocaleDateString('es-CO')}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary btn-action" onclick="dashboard.viewOrder(${order.id})">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-success btn-action" onclick="dashboard.generateInvoice(${order.id})">
-                                <i class="fas fa-file-pdf"></i>
-                            </button>
-                        </td>
+                    console.error('Error cargando pedidos:', error);
+                    document.getElementById('ordersList').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error cargando pedidos: ${error.message}
+                        </div>
                     `;
-                    tbody.appendChild(row);
-                });
-            }
-
-            async loadBillingStats() {
-                try {
-                    const response = await this.makeRequest('/billing/stats');
-                    this.updateBillingStats(response);
-                } catch (error) {
-                    this.showAlert('Error cargando estadísticas de facturación: ' + error.message, 'danger');
                 }
             }
 
-            updateBillingStats(stats) {
+            updateOrdersList(orders) {
+                const container = document.getElementById('ordersList');
+                if (!orders || orders.length === 0) {
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay pedidos registrados.
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                orders.forEach(order => {
+                    html += `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6>Pedido #${order.id}</h6>
+                                <p class="text-muted">Estado: ${order.status}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
+            async loadBilling() {
+                try {
+                    const data = await this.makeRequest('/billing/stats');
+                    this.updateBillingStats(data);
+                } catch (error) {
+                    console.error('Error cargando facturación:', error);
+                    document.getElementById('billingStats').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error cargando facturación: ${error.message}
+                        </div>
+                    `;
+                }
+            }
+
+            updateBillingStats(data) {
                 const container = document.getElementById('billingStats');
                 container.innerHTML = `
                     <div class="row">
-                        <div class="col-6">
-                            <h6>Total Pedidos</h6>
-                            <h4>${stats.totalOrders}</h4>
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h4>${data.totalInvoices || 0}</h4>
+                                    <p class="text-muted">Facturas Totales</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <h6>Pedidos Facturados</h6>
-                            <h4>${stats.invoicedOrders}</h4>
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h4>$${data.totalBillingAmount || 0}</h4>
+                                    <p class="text-muted">Monto Total</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-6">
-                            <h6>Pendientes de Facturación</h6>
-                            <h4>${stats.pendingInvoicing}</h4>
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h4>${data.pendingInvoices || 0}</h4>
+                                    <p class="text-muted">Pendientes</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <h6>Ingresos Facturados</h6>
-                            <h4>$${stats.invoicedRevenue || 0}</h4>
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h4>${data.paidInvoices || 0}</h4>
+                                    <p class="text-muted">Pagadas</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
             }
 
-            async handleBranchSubmit(e) {
-                e.preventDefault();
-                
-                const formData = new FormData();
-                formData.append('name', document.getElementById('branchName').value);
-                formData.append('address', document.getElementById('branchAddress').value);
-                formData.append('phone', document.getElementById('branchPhone').value);
-                formData.append('order_number', document.getElementById('branchWhatsApp').value);
-                
-                const logoFile = document.getElementById('branchLogo').files[0];
-                if (logoFile) {
-                    formData.append('logo', logoFile);
-                }
-
+            async loadWhatsApp() {
                 try {
-                    const branchId = document.getElementById('branchId').value;
-                    const url = branchId ? `/admin/branches/${branchId}` : '/admin/branches';
-                    const method = branchId ? 'PUT' : 'POST';
-                    
-                    await this.makeRequest(url, {
-                        method,
-                        body: formData
-                    });
-
-                    this.showAlert('Sucursal guardada exitosamente', 'success');
-                    document.getElementById('branchForm').reset();
-                    document.getElementById('branchId').value = '';
-                    
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('branchModal'));
-                    modal.hide();
-                    
-                    // Reload branches
-                    await this.loadBranches();
-                    
+                    const data = await this.makeRequest('/branch-whatsapp/branches/status');
+                    this.updateBranchesWhatsAppList(data.branches);
                 } catch (error) {
-                    this.showAlert('Error guardando sucursal: ' + error.message, 'danger');
-                }
-            }
-
-            async handleUserSubmit(e) {
-                e.preventDefault();
-                
-                const userData = {
-                    name: document.getElementById('userName').value,
-                    email: document.getElementById('userEmail').value,
-                    password: document.getElementById('userPassword').value,
-                    role: document.getElementById('userRole').value,
-                    branch_id: parseInt(document.getElementById('userBranch').value)
-                };
-
-                try {
-                    await this.makeRequest('/admin/users', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(userData)
-                    });
-
-                    this.showAlert('Usuario creado exitosamente', 'success');
-                    document.getElementById('userForm').reset();
-                    
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
-                    modal.hide();
-                    
-                    // Reload users
-                    await this.loadUsers();
-                    
-                } catch (error) {
-                    this.showAlert('Error creando usuario: ' + error.message, 'danger');
-                }
-            }
-
-            async loadBranchesForUserForm() {
-                try {
-                    const response = await this.makeRequest('/admin/branches');
-                    const select = document.getElementById('userBranch');
-                    select.innerHTML = '<option value="">Seleccionar sucursal</option>';
-                    
-                    response.branches.forEach(branch => {
-                        const option = document.createElement('option');
-                        option.value = branch.id;
-                        option.textContent = branch.name;
-                        select.appendChild(option);
-                    });
-                } catch (error) {
-                    console.error('Error cargando sucursales para formulario:', error);
-                }
-            }
-
-            async generateInvoices() {
-                try {
-                    const response = await this.makeRequest('/billing/send/1', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            caption: 'Tu factura está lista! Gracias por tu compra.'
-                        })
-                    });
-
-                    this.showAlert(`Facturas procesadas: ${response.ordersProcessed}`, 'success');
-                    
-                } catch (error) {
-                    this.showAlert('Error generando facturas: ' + error.message, 'danger');
-                }
-            }
-
-            async makeRequest(endpoint, options = {}) {
-                // Asegurar que el endpoint comience con /api
-                const cleanEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
-                const url = `http://localhost:4000${cleanEndpoint}`;
-                
-                const token = this.authService.getToken();
-                if (!token) {
-                    throw new Error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
-                }
-                
-                const config = {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
-                    ...options
-                };
-
-                console.log('🔍 Making request to:', url);
-                const response = await fetch(url, config);
-                const data = await response.json();
-
-                if (!response.ok) {
-                    console.error('❌ API Error:', data);
-                    throw new Error(data.error || 'Error en la petición');
-                }
-
-                console.log('✅ API Response:', data);
-                return data;
-            }
-
-            showAlert(message, type) {
-                const container = document.getElementById('alertContainer');
-                
-                const alert = document.createElement('div');
-                alert.className = `alert alert-${type} alert-dismissible fade show`;
-                alert.innerHTML = `
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-
-                container.innerHTML = '';
-                container.appendChild(alert);
-
-                // Auto-dismiss después de 5 segundos
-                setTimeout(() => {
-                    if (alert.parentNode) {
-                        alert.remove();
-                    }
-                }, 5000);
-            }
-
-            // Placeholder methods for future implementation
-            editBranch(id) {
-                console.log('Edit branch:', id);
-                this.showAlert('Función en desarrollo', 'info');
-            }
-
-            deleteBranch(id) {
-                if (confirm('¿Estás seguro de que quieres eliminar esta sucursal?')) {
-                    console.log('Delete branch:', id);
-                    this.showAlert('Función en desarrollo', 'info');
-                }
-            }
-
-            editUser(id) {
-                console.log('Edit user:', id);
-                this.showAlert('Función en desarrollo', 'info');
-            }
-
-            viewOrder(id) {
-                console.log('View order:', id);
-                this.showAlert('Función en desarrollo', 'info');
-            }
-
-            generateInvoice(id) {
-                console.log('Generate invoice:', id);
-                this.showAlert('Función en desarrollo', 'info');
-            }
-
-            // ===== FUNCIONES DE WHATSAPP POR SUCURSAL =====
-            showWhatsAppSection() {
-                // Ocultar todas las secciones
-                const sections = ['dashboardSection', 'branchesSection', 'usersSection', 'ordersSection', 'billingSection', 'whatsappSection', 'settingsSection'];
-                sections.forEach(sectionId => {
-                    const section = document.getElementById(sectionId);
-                    if (section) {
-                        section.style.display = 'none';
-                    }
-                });
-                
-                // Mostrar sección de WhatsApp
-                const whatsappSection = document.getElementById('whatsappSection');
-                if (whatsappSection) {
-                    whatsappSection.style.display = 'block';
-                    this.loadBranchesWhatsAppStatus();
-                    this.loadWhatsAppHealth(); // Cargar métricas de salud
-                } else {
-                    this.showAlert('Sección de WhatsApp no encontrada', 'warning');
-                }
-            }
-
-            async loadBranchesWhatsAppStatus() {
-                try {
-                    const response = await this.makeRequest('/branch-whatsapp/branches/status');
-                    this.updateBranchesWhatsAppList(response.branches);
-                } catch (error) {
-                    this.showAlert('Error cargando estado de WhatsApp de sucursales: ' + error.message, 'danger');
-                }
-            }
-
-            // Función para cargar métricas de salud del pool
-            async loadWhatsAppHealth() {
-                try {
-                    const response = await this.makeRequest('/branch-whatsapp/health', 'GET');
-                    if (response.success) {
-                        this.updateHealthMetrics(response.data);
-                    } else {
-                        console.error('Error cargando métricas de salud:', response.error);
-                    }
-                } catch (error) {
-                    console.error('Error cargando métricas de salud:', error);
-                }
-            }
-
-            // Función para actualizar métricas de salud en el dashboard
-            updateHealthMetrics(healthData) {
-                const healthContainer = document.getElementById('whatsappHealthMetrics');
-                if (!healthContainer) return;
-
-                const { health, totalBranches, connectedBranches, timestamp } = healthData;
-                
-                let healthHTML = `
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body text-center">
-                                    <h5>${totalBranches}</h5>
-                                    <small>Total Sucursales</small>
-                                </div>
-                            </div>
+                    console.error('Error cargando estado de WhatsApp de sucursales:', error);
+                    document.getElementById('branchesWhatsAppList').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error cargando estado de WhatsApp de sucursales: ${error.message}
                         </div>
-                        <div class="col-md-3">
-                            <div class="card bg-success text-white">
-                                <div class="card-body text-center">
-                                    <h5>${connectedBranches}</h5>
-                                    <small>Conectadas</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body text-center">
-                                    <h5>${totalBranches - connectedBranches}</h5>
-                                    <small>Desconectadas</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-info text-white">
-                                <div class="card-body text-center">
-                                    <h5>${Math.round((connectedBranches / totalBranches) * 100)}%</h5>
-                                    <small>Disponibilidad</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Sucursal</th>
-                                    <th>Estado</th>
-                                    <th>Última Conexión</th>
-                                    <th>QR Disponible</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-
-                health.forEach(branch => {
-                    const statusBadge = this.getStatusBadge(branch.status);
-                    const lastReady = branch.lastReadyAt ? new Date(branch.lastReadyAt).toLocaleString('es-CO') : 'Nunca';
-                    const qrStatus = branch.hasQR ? '<span class="badge bg-warning">Sí</span>' : '<span class="badge bg-secondary">No</span>';
-                    
-                    healthHTML += `
-                        <tr>
-                            <td>${branch.branchId}</td>
-                            <td>${statusBadge}</td>
-                            <td>${lastReady}</td>
-                            <td>${qrStatus}</td>
-                        </tr>
                     `;
-                });
-
-                healthHTML += `
-                            </tbody>
-                        </table>
-                        <small class="text-muted">Última actualización: ${new Date(timestamp).toLocaleString('es-CO')}</small>
-                    </div>
-                `;
-
-                healthContainer.innerHTML = healthHTML;
-            }
-
-            // Función para obtener badge de estado
-            getStatusBadge(status) {
-                if (status === 'ready') {
-                    return '<span class="badge bg-success">Conectado</span>';
-                } else if (status === 'qr') {
-                    return '<span class="badge bg-warning">QR Listo</span>';
-                } else if (status === 'init') {
-                    return '<span class="badge bg-info">Inicializando</span>';
-                } else if (status.includes('disconnected')) {
-                    return '<span class="badge bg-danger">Desconectado</span>';
-                } else if (status.includes('auth_failure')) {
-                    return '<span class="badge bg-danger">Error Auth</span>';
-                } else {
-                    return '<span class="badge bg-secondary">Desconocido</span>';
                 }
             }
 
-            // Función para actualizar la lista de sucursales con mejor información
+            getStatusBadge(status) {
+                const statusClasses = {
+                    'ready': 'bg-success',
+                    'qr_ready': 'bg-warning',
+                    'connecting': 'bg-primary',
+                    'disconnected': 'bg-danger',
+                    'auth_failure': 'bg-danger'
+                };
+                const statusTexts = {
+                    'ready': 'Conectado',
+                    'qr_ready': 'Esperando QR',
+                    'connecting': 'Conectando',
+                    'disconnected': 'Desconectado',
+                    'auth_failure': 'Error Auth'
+                };
+                const className = statusClasses[status] || 'bg-secondary';
+                const text = statusTexts[status] || 'Desconocido';
+                return `<span class="badge ${className} status-badge">${text}</span>`;
+            }
+
+            generateWhatsAppButtons(branch) {
+                const whatsapp = branch.whatsapp || {};
+                const status = whatsapp.status || 'disconnected';
+                const isConnected = status === 'connected' || status === 'ready';
+                const isQRReady = status === 'qr_ready' || status === 'qr';
+                const isInitializing = status === 'initializing' || status === 'connecting';
+                
+                return `
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-whatsapp me-2"></i>WhatsApp - ${branch.name}
+                            </h6>
+                            <span class="badge ${this.getStatusBadgeClass(status)}">
+                                ${this.getStatusText(status)}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <!-- QR Code Section - Mostrar solo si está en estado QR y no conectado -->
+                            <div id="qr-section-${branch.id}" class="mb-3 ${isConnected ? 'd-none' : ''}">
+                                <div class="text-center">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fas fa-qrcode me-2"></i>Código QR para vincular
+                                    </h6>
+                                    <div class="qr-container border rounded p-2 bg-light d-inline-block">
+                                        <div id="qr-loading-${branch.id}" class="text-center">
+                                            ${isQRReady ? `
+                                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                    <span class="visually-hidden">Cargando...</span>
+                                                </div>
+                                                <small class="d-block mt-1">Cargando QR...</small>
+                                            ` : `
+                                                <div class="text-muted">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    <small>No hay QR disponible</small>
+                                                </div>
+                                            `}
+                                        </div>
+                                    </div>
+                                    ${isQRReady ? `
+                                        <div class="mt-2">
+                                            <button class="btn btn-outline-primary btn-sm" onclick="dashboard.refreshBranchQR('${branch.id}')">
+                                                <i class="fas fa-sync-alt me-1"></i>Actualizar QR
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Status Info - Mostrar solo si está conectado -->
+                            <div id="status-section-${branch.id}" class="mb-3 ${!isConnected ? 'd-none' : ''}">
+                                <div class="alert alert-success alert-sm">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <div>
+                                            <strong>WhatsApp conectado</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                Número: ${whatsapp.phone_number || 'No configurado'}
+                                                ${whatsapp.last_connection ? `<br>Conectado desde: ${new Date(whatsapp.last_connection).toLocaleString()}` : ''}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-whatsapp-connect"
+                                        onclick="console.log('🖱️ Clic en Conectar WhatsApp para', '${branch.id}'); dashboard.initializeBranchWhatsApp('${branch.id}')"
+                                        ${isConnected || isQRReady || isInitializing ? 'disabled' : ''}>
+                                    <i class="fas fa-plug me-2"></i>Conectar WhatsApp
+                                </button>
+                                <button class="btn btn-whatsapp-disconnect"
+                                        onclick="dashboard.disconnectBranchWhatsApp('${branch.id}')"
+                                        ${!isConnected ? 'disabled' : ''}>
+                                    <i class="fas fa-unlink me-2"></i>Desconectar
+                                </button>
+                                <button class="btn btn-whatsapp-logout"
+                                        onclick="dashboard.logoutBranchWhatsApp('${branch.id}')"
+                                        ${status === 'disconnected' ? 'disabled' : ''}>
+                                    <i class="fas fa-sign-out-alt me-2"></i>Desvincular Sesión
+                                </button>
+                                <button class="btn btn-whatsapp-test"
+                                        onclick="dashboard.sendTestMessage('${branch.id}')"
+                                        ${!isConnected ? 'disabled' : ''}>
+                                    <i class="fas fa-paper-plane me-2"></i>Enviar Mensaje de Prueba
+                                </button>
+                                <button class="btn btn-whatsapp-config"
+                                        onclick="dashboard.configureMessages('${branch.id}')">
+                                    <i class="fas fa-cog me-2"></i>Configurar Mensajes
+                                </button>
+                                <button class="btn btn-whatsapp-primary"
+                                        onclick="dashboard.regenerateQR('${branch.id}')">
+                                    <i class="fas fa-sync-alt me-2"></i>Regenerar QR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getStatusBadgeClass(status) {
+                switch (status) {
+                    case 'ready':
+                        return 'bg-success';
+                    case 'qr_ready':
+                    case 'qr':
+                    case 'init':
+                        return 'bg-warning';
+                    case 'connecting':
+                        return 'bg-primary';
+                    case 'disconnected':
+                    case 'auth_failure':
+                        return 'bg-danger';
+                    default:
+                        return 'bg-secondary';
+                }
+            }
+
+            getStatusText(status) {
+                switch (status) {
+                    case 'ready':
+                        return 'Conectado';
+                    case 'qr_ready':
+                    case 'qr':
+                        return 'Esperando QR';
+                    case 'init':
+                        return 'Inicializando';
+                    case 'connecting':
+                        return 'Conectando';
+                    case 'disconnected':
+                        return 'Desconectado';
+                    case 'auth_failure':
+                        return 'Error Auth';
+                    default:
+                        return 'Desconocido';
+                }
+            }
+
+            async refreshBranchQR(branchId, retryCount = 0) {
+                try {
+                    console.log(`🔄 Actualizando QR para sucursal: ${branchId} (intento ${retryCount + 1})`);
+                    
+                    const qrLoading = document.getElementById(`qr-loading-${branchId}`);
+                    const qrImage = document.getElementById(`qr-image-${branchId}`);
+                    const qrError = document.getElementById(`qr-error-${branchId}`);
+                    
+                    if (!qrLoading) {
+                        console.error('Elemento QR loading no encontrado para branch:', branchId);
+                        return;
+                    }
+                    
+                    // Mostrar loading
+                    qrLoading.innerHTML = `
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border text-primary me-2" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">Generando QR de vinculación...</div>
+                                <small class="text-muted">Esto puede tardar 10-30 segundos (intento ${retryCount + 1})</small>
+                            </div>
+                        </div>
+                    `;
+                    qrLoading.classList.remove('d-none');
+                    
+                    if (qrImage) qrImage.classList.add('d-none');
+                    if (qrError) qrError.classList.add('d-none');
+                    
+                    console.log(`📡 Solicitando QR para branch ${branchId}...`);
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/qr`);
+                    console.log(`📄 Respuesta QR recibida:`, response);
+                    
+                    if (response.ok && response.dataUrl) {
+                        // Mostrar QR directamente en el elemento loading
+                        qrLoading.innerHTML = `
+                            <img src="${response.dataUrl}" class="img-fluid" alt="QR Code" style="max-width: 200px;">
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Escanea con WhatsApp para vincular
+                                </small>
+                            </div>
+                        `;
+                        console.log(`✅ QR mostrado para sucursal ${branchId}`);
+                    } else if (response.status === 'initializing' && retryCount < 30) {
+                        // Si está inicializando, esperar y reintentar
+                        console.log(`⏳ QR aún no está listo, reintentando en 2 segundos... (${retryCount + 1}/30)`);
+                        setTimeout(() => {
+                            this.refreshBranchQR(branchId, retryCount + 1);
+                        }, 2000);
+                        return;
+                    } else {
+                        throw new Error(response.message || 'No se pudo obtener el código QR');
+                    }
+                } catch (error) {
+                    console.error('Error actualizando QR:', error);
+                    
+                    // Mostrar error en el elemento loading
+                    const qrLoading = document.getElementById(`qr-loading-${branchId}`);
+                    if (qrLoading) {
+                        qrLoading.innerHTML = `
+                            <div class="alert alert-danger alert-sm mb-0">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <small>${error.message}</small>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
             updateBranchesWhatsAppList(branches) {
                 const container = document.getElementById('branchesWhatsAppList');
                 if (!container) return;
@@ -1287,8 +985,8 @@
                 branches.forEach(branch => {
                     const whatsapp = branch.whatsapp || {};
                     const statusBadge = this.getStatusBadge(whatsapp.status);
-                    const lastConnection = whatsapp.lastReadyAt ? 
-                        new Date(whatsapp.lastReadyAt).toLocaleString('es-CO') : 'Nunca';
+                    const lastConnection = whatsapp.last_connection ? 
+                        new Date(whatsapp.last_connection).toLocaleString('es-CO') : 'Nunca';
                     const phoneNumber = whatsapp.phone_number || 'No configurado';
 
                     html += `
@@ -1306,27 +1004,7 @@
                                         <p><strong>Última conexión:</strong> ${lastConnection}</p>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="btn-group-vertical w-100" role="group">
-                                            <button class="btn btn-sm btn-success mb-1" 
-                                                    onclick="initializeBranchWhatsApp('${branch.id}')"
-                                                    ${whatsapp.status === 'ready' ? 'disabled' : ''}>
-                                                <i class="fas fa-plug"></i> Conectar
-                                            </button>
-                                            <button class="btn btn-sm btn-warning mb-1" 
-                                                    onclick="disconnectBranchWhatsApp('${branch.id}')"
-                                                    ${whatsapp.status !== 'ready' ? 'disabled' : ''}>
-                                                <i class="fas fa-unlink"></i> Desconectar
-                                            </button>
-                                            <button class="btn btn-sm btn-danger mb-1" 
-                                                    onclick="logoutBranchWhatsApp('${branch.id}')">
-                                                <i class="fas fa-sign-out-alt"></i> Desvincular
-                                            </button>
-                                            <button class="btn btn-sm btn-info" 
-                                                    onclick="showBranchQR('${branch.id}')"
-                                                    ${whatsapp.status !== 'qr' ? 'disabled' : ''}>
-                                                <i class="fas fa-qrcode"></i> Ver QR
-                                            </button>
-                                        </div>
+                                        ${this.generateWhatsAppButtons(branch)}
                                     </div>
                                 </div>
                             </div>
@@ -1335,230 +1013,492 @@
                 });
 
                 container.innerHTML = html;
+                
+                // Cargar QRs inmediatamente después de actualizar la lista
+                console.log('🔄 Cargando QRs después de actualizar lista...');
+                this.loadAllBranchQRs();
             }
 
-            // Funciones para manejar WhatsApp por sucursal
+            async loadAllBranchQRs() {
+                try {
+                    console.log('🔄 Cargando QRs de todas las sucursales...');
+                    
+                    const data = await this.makeRequest('/branch-whatsapp/branches/status');
+                    const branches = data.branches;
+                    
+                    if (branches && branches.length > 0) {
+                        for (const branch of branches) {
+                            const whatsapp = branch.whatsapp || {};
+                            const status = whatsapp.status || 'disconnected';
+                            const isConnected = status === 'connected' || status === 'ready';
+                            const isQRReady = status === 'qr_ready' || status === 'qr';
+                            
+                            // Solo cargar QR si está en estado QR y no conectado
+                            if (isQRReady && !isConnected) {
+                                await this.refreshBranchQR(branch.id);
+                            }
+                        }
+                    }
+                    
+                    console.log('✅ QRs cargados exitosamente');
+                } catch (error) {
+                    console.error('Error cargando QRs de sucursales:', error);
+                }
+            }
+
             async initializeBranchWhatsApp(branchId) {
                 try {
-                    const phoneNumber = prompt('Ingresa el número de WhatsApp para esta sucursal (ej: +573001234567):');
-                    if (!phoneNumber) return;
+                    console.log(`🚀 Inicializando WhatsApp para sucursal: ${branchId}`);
+                    
+                    const phoneNumber = prompt('Ingresa el número de WhatsApp (ej: +573001234567):');
+                    console.log(`📱 Número ingresado: ${phoneNumber}`);
+                    
+                    if (!phoneNumber) {
+                        console.log('❌ No se ingresó número de teléfono');
+                        return;
+                    }
+
+                    console.log(`🔄 Inicializando WhatsApp para sucursal ${branchId} con número ${phoneNumber}`);
 
                     const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/initialize`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
                         body: JSON.stringify({ phoneNumber })
                     });
+
+                    console.log('✅ WhatsApp inicializado:', response);
+
+                    alert('WhatsApp inicializado exitosamente. El código QR se generará automáticamente.');
                     
-                    this.showAlert('WhatsApp inicializado exitosamente para la sucursal', 'success');
-                    await this.loadBranchesWhatsAppStatus();
+                    // Recargar la sección WhatsApp para mostrar el QR
+                    await this.loadWhatsApp();
+                    
+                    // Esperar un momento y luego cargar el QR específico
+                    setTimeout(async () => {
+                        await this.refreshBranchQR(branchId);
+                    }, 3000);
                     
                 } catch (error) {
-                    this.showAlert('Error inicializando WhatsApp para la sucursal: ' + error.message, 'danger');
+                    console.error('❌ Error inicializando WhatsApp:', error);
+                    alert('Error inicializando WhatsApp: ' + error.message);
                 }
             }
 
             async disconnectBranchWhatsApp(branchId) {
                 try {
-                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/disconnect`, {
+                    if (!confirm('¿Estás seguro de que quieres desconectar WhatsApp de esta sucursal?')) return;
+
+                    await this.makeRequest(`/branch-whatsapp/branch/${branchId}/disconnect`, {
                         method: 'POST'
                     });
-                    
-                    this.showAlert('WhatsApp desconectado exitosamente de la sucursal', 'success');
-                    await this.loadBranchesWhatsAppStatus();
-                    
+
+                    alert('WhatsApp desconectado exitosamente.');
+                    this.loadWhatsApp(); // Recargar la sección
                 } catch (error) {
-                    this.showAlert('Error desconectando WhatsApp de la sucursal: ' + error.message, 'danger');
+                    console.error('Error desconectando WhatsApp:', error);
+                    alert('Error desconectando WhatsApp: ' + error.message);
                 }
             }
 
             async logoutBranchWhatsApp(branchId) {
                 try {
-                    if (confirm('¿Estás seguro de que quieres desvincular la sesión de WhatsApp de esta sucursal? Esto requerirá escanear el QR nuevamente.')) {
-                        const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/logout`, {
-                            method: 'POST'
-                        });
-                        
-                        this.showAlert('Sesión de WhatsApp desvinculada exitosamente de la sucursal', 'success');
-                        await this.loadBranchesWhatsAppStatus();
-                    }
+                    if (!confirm('¿Estás seguro de que quieres desvincular completamente la sesión de WhatsApp de esta sucursal?')) return;
+
+                    await this.makeRequest(`/branch-whatsapp/branch/${branchId}/logout`, {
+                        method: 'POST'
+                    });
+
+                    alert('Sesión de WhatsApp desvinculada exitosamente.');
+                    this.loadWhatsApp(); // Recargar la sección
                 } catch (error) {
-                    this.showAlert('Error desvinculando sesión de WhatsApp de la sucursal: ' + error.message, 'danger');
+                    console.error('Error desvinculando WhatsApp:', error);
+                    alert('Error desvinculando WhatsApp: ' + error.message);
                 }
             }
 
-            async showBranchQR(branchId) {
+            async sendTestMessage(branchId) {
                 try {
-                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/qr`);
+                    const to = prompt('Ingresa el número de destino (ej: +573001234567):');
+                    if (!to) return;
+
+                    const message = prompt('Ingresa el mensaje de prueba:');
+                    if (!message) return;
+
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/send`, {
+                        method: 'POST',
+                        body: JSON.stringify({ to, message })
+                    });
+
+                    alert('Mensaje de prueba enviado exitosamente.');
+                } catch (error) {
+                    console.error('Error enviando mensaje de prueba:', error);
+                    alert('Error enviando mensaje de prueba: ' + error.message);
+                }
+            }
+
+            async configureMessages(branchId) {
+                try {
+                    console.log(`📝 Configurando mensajes para sucursal: ${branchId}`);
                     
-                    // Crear modal para mostrar QR más grande
-                    const modal = document.createElement('div');
-                    modal.className = 'modal fade';
-                    modal.id = 'qrModal';
-                    modal.innerHTML = `
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="qrModalTitle">Código QR para WhatsApp</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body text-center">
-                                    <img src="" alt="QR Code" id="qrModalImage" style="max-width: 300px; border: 2px solid #ddd; border-radius: 8px;">
-                                    <div class="mt-3">
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Abre WhatsApp en tu teléfono → Menú → WhatsApp Web → Escanea el código
-                                        </small>
+                    // Obtener mensajes actuales
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/messages`);
+                    const messages = response.messages;
+                    
+                    // Crear modal para configurar mensajes
+                    const modalHtml = `
+                        <div class="modal fade" id="messagesModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">
+                                            <i class="fas fa-cog me-2"></i>Configurar Mensajes por Defecto
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <div class="modal-body">
+                                        <form id="messagesForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Mensaje de Bienvenida</label>
+                                                <textarea class="form-control" name="welcome" rows="3">${messages.welcome}</textarea>
+                                                <small class="text-muted">Mensaje que se envía cuando un cliente escribe por primera vez</small>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Mensaje del Menú</label>
+                                                <textarea class="form-control" name="menu" rows="3">${messages.menu}</textarea>
+                                                <small class="text-muted">Respuesta cuando el cliente pide ver el menú</small>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Mensaje de Pedido</label>
+                                                <textarea class="form-control" name="order" rows="3">${messages.order}</textarea>
+                                                <small class="text-muted">Confirmación cuando se recibe un pedido</small>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Mensaje de Despedida</label>
+                                                <textarea class="form-control" name="goodbye" rows="3">${messages.goodbye}</textarea>
+                                                <small class="text-muted">Mensaje de despedida al finalizar la conversación</small>
+                                            </div>
+                                            <hr class="my-4">
+                                            <div class="mb-3">
+                                                <label class="form-label">
+                                                    <i class="fas fa-robot me-2"></i>Prompt de IA
+                                                </label>
+                                                <textarea class="form-control" name="aiPrompt" rows="4" placeholder="Eres un asistente virtual de FastWings, un restaurante de comida rápida...">${messages.aiPrompt || 'Eres un asistente virtual de FastWings, un restaurante de comida rápida. Debes ser amigable, profesional y ayudar a los clientes con sus pedidos, consultas sobre el menú y cualquier otra pregunta relacionada con nuestros servicios.'}</textarea>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    Instrucciones para la IA que atenderá las consultas de los clientes
+                                                </small>
+                                            </div>
+                                            <div class="alert alert-info alert-sm">
+                                                <i class="fas fa-lightbulb me-2"></i>
+                                                <strong>Consejo:</strong> El prompt de IA se usará para generar respuestas automáticas inteligentes a las consultas de los clientes.
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" class="btn btn-primary" onclick="dashboard.saveMessages('${branchId}')">
+                                            <i class="fas fa-save me-2"></i>Guardar Mensajes
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     `;
                     
-                    document.body.appendChild(modal);
+                    // Agregar modal al DOM
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
                     
                     // Mostrar modal
-                    const bootstrapModal = new bootstrap.Modal(modal);
-                    bootstrapModal.show();
+                    const modal = new bootstrap.Modal(document.getElementById('messagesModal'));
+                    modal.show();
                     
-                    // Limpiar modal después de cerrar
-                    modal.addEventListener('hidden.bs.modal', () => {
-                        document.body.removeChild(modal);
+                    // Limpiar modal cuando se cierre
+                    document.getElementById('messagesModal').addEventListener('hidden.bs.modal', function () {
+                        this.remove();
                     });
                     
                 } catch (error) {
-                    this.showAlert('Error obteniendo código QR: ' + error.message, 'danger');
+                    console.error('Error configurando mensajes:', error);
+                    alert('Error configurando mensajes: ' + error.message);
                 }
             }
 
-            // Función para enviar mensaje de prueba
-            async sendTestMessage(branchId) {
-                const phoneNumber = prompt('Ingresa el número de teléfono para enviar mensaje de prueba (ej: +573001234567):');
-                if (!phoneNumber) return;
-
-                const message = prompt('Ingresa el mensaje de prueba:');
-                if (!message) return;
-
+            async saveMessages(branchId) {
                 try {
-                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/send`, 'POST', {
-                        to: phoneNumber,
-                        message: message
+                    const form = document.getElementById('messagesForm');
+                    const formData = new FormData(form);
+                    
+                    const messages = {
+                        welcome: formData.get('welcome'),
+                        menu: formData.get('menu'),
+                        order: formData.get('order'),
+                        goodbye: formData.get('goodbye'),
+                        aiPrompt: formData.get('aiPrompt')
+                    };
+                    
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/messages`, {
+                        method: 'POST',
+                        body: JSON.stringify({ messages })
                     });
-
-                    if (response.success) {
-                        this.showAlert('Mensaje de prueba enviado exitosamente', 'success');
-                    } else {
-                        this.showAlert('Error enviando mensaje: ' + response.error, 'danger');
-                    }
+                    
+                    alert('Mensajes guardados exitosamente.');
+                    
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('messagesModal'));
+                    modal.hide();
+                    
                 } catch (error) {
-                    console.error('Error enviando mensaje de prueba:', error);
-                    this.showAlert('Error enviando mensaje de prueba', 'danger');
+                    console.error('Error guardando mensajes:', error);
+                    alert('Error guardando mensajes: ' + error.message);
                 }
             }
 
-            // Función para configurar sucursal
-            async configureBranch(branchId) {
-                const systemNumber = prompt('Número del sistema (que atiende clientes):');
-                const ordersNumber = prompt('Número de cocina (recibe pedidos):');
-
-                if (!systemNumber && !ordersNumber) return;
-
+            async forceInit(branchId) {
                 try {
-                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/config`, 'POST', {
-                        systemNumber: systemNumber || undefined,
-                        ordersForwardNumber: ordersNumber || undefined
+                    console.log(`⚡ Forzando inicialización para sucursal: ${branchId}`);
+                    
+                    // Pedir número de teléfono
+                    const phoneNumber = prompt('Ingresa el número de teléfono para WhatsApp:', '57XXXXXXXXX');
+                    if (!phoneNumber) return;
+                    
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/force-init`, {
+                        method: 'POST',
+                        body: JSON.stringify({ phoneNumber })
                     });
-
-                    if (response.success) {
-                        this.showAlert('Configuración actualizada exitosamente', 'success');
-                        this.loadBranchesWhatsAppStatus(); // Recargar estado
+                    
+                    if (response.message) {
+                        console.log(`✅ Inicialización forzada: ${response.message}`);
+                        alert(`✅ ${response.message}\n\n${response.note}`);
+                        
+                        // Recargar la sección después de 10 segundos
+                        setTimeout(() => {
+                            this.loadWhatsApp();
+                        }, 10000);
                     } else {
-                        this.showAlert('Error actualizando configuración: ' + response.error, 'danger');
+                        throw new Error('Respuesta inválida del servidor');
                     }
+                    
                 } catch (error) {
-                    console.error('Error configurando sucursal:', error);
-                    this.showAlert('Error configurando sucursal', 'danger');
+                    console.error('Error forzando inicialización:', error);
+                    alert('Error forzando inicialización: ' + error.message);
                 }
             }
 
-            // Función para actualizar la lista de sucursales con mejor información
-            updateBranchesWhatsAppList(branches) {
-                const container = document.getElementById('branchesWhatsAppList');
-                if (!container) return;
+            async debugStatus(branchId) {
+                try {
+                    console.log(`🔍 Debug para sucursal: ${branchId}`);
+                    
+                    const response = await this.makeRequest('/branch-whatsapp/debug');
+                    
+                    if (response.success) {
+                        console.log('📊 Estado actual del servidor:', response.debug);
+                        
+                        const debugInfo = `
+Estado del servidor:
+- Timestamp: ${response.debug.timestamp}
+- Sucursales: ${response.debug.branches.join(', ')}
 
-                if (!branches || branches.length === 0) {
-                    container.innerHTML = `
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> No hay sucursales configuradas.
+Estado de la sucursal ${branchId}:
+- Status: ${response.debug.whatsappData[branchId]?.status || 'no data'}
+- Tiene cliente: ${!!response.debug.whatsappData[branchId]?.client}
+- Tiene QR: ${!!response.debug.whatsappData[branchId]?.qrCode}
+- Número: ${response.debug.whatsappData[branchId]?.phoneNumber || 'no configurado'}
+                        `;
+                        
+                        alert(debugInfo);
+                    } else {
+                        throw new Error('Respuesta inválida del servidor');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error en debug:', error);
+                    alert('Error en debug: ' + error.message);
+                }
+            }
+
+            async regenerateQR(branchId) {
+                let originalText = '';
+                try {
+                    console.log(`🔄 Regenerando QR para sucursal: ${branchId}`);
+                    
+                    // Mostrar loading en el botón
+                    const button = event.target.closest('button');
+                    originalText = button.innerHTML;
+                    button.innerHTML = `
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Regenerando...</span>
                         </div>
+                        Regenerando QR...
                     `;
+                    button.disabled = true;
+                    
+                    const response = await this.makeRequest(`/branch-whatsapp/branch/${branchId}/regenerate-qr`, {
+                        method: 'POST'
+                    });
+                    
+                    console.log('✅ QR regenerado:', response);
+                    
+                    // Restaurar botón
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    
+                    if (response.message) {
+                        console.log(`✅ QR regenerado: ${response.message}`);
+                        
+                        // Mostrar mensaje de éxito
+                        const qrLoading = document.getElementById(`qr-loading-${branchId}`);
+                        if (qrLoading) {
+                            qrLoading.innerHTML = `
+                                <div class="alert alert-info alert-sm mb-0">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <small>QR regenerado. Generando nuevo código...</small>
+                                </div>
+                            `;
+                        }
+                        
+                        // Esperar y cargar el nuevo QR
+                        setTimeout(async () => {
+                            await this.refreshBranchQR(branchId);
+                        }, 3000);
+                    } else {
+                        throw new Error('Respuesta inválida del servidor');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error regenerando QR:', error);
+                    
+                    // Restaurar botón en caso de error
+                    const button = event.target.closest('button');
+                    if (button && originalText) {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }
+                    
+                    alert('Error regenerando QR: ' + error.message);
+                }
+            }
+
+            async checkAIStatus() {
+                try {
+                    console.log('🔍 Verificando estado de IA...');
+                    
+                    const response = await this.makeRequest('/branch-whatsapp/ai-status');
+                    
+                    if (response.success) {
+                        console.log('✅ Estado de IA:', response.aiStatus);
+                        if (response.aiStatus === 'connected') {
+                            console.log('🤖 IA conectada y funcionando');
+                        } else {
+                            console.log('⚠️ IA con problemas:', response.error);
+                        }
+                    } else {
+                        console.log('❌ Error verificando estado de IA:', response.error);
+                    }
+                } catch (error) {
+                    console.error('❌ Error verificando estado de IA:', error);
+                }
+            }
+
+            loadSettings() {
+                // Implementar configuración del sistema
+                console.log('Cargando configuración del sistema...');
+            }
+
+            logout() {
+                this.authService.logout();
+            }
+
+            setupUserInfo() {
+                const user = this.authService.getUser();
+                if (user && user.name) {
+                    document.getElementById('userName').textContent = user.name;
+                }
+            }
+
+            bindEvents() {
+                // Event listeners para navegación
+                document.querySelectorAll('[data-section]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const sectionName = link.dataset.section;
+                        console.log('🖱️ Clic en enlace:', sectionName);
+                        this.showSection(sectionName);
+                    });
+                });
+            }
+
+            init() {
+                console.log('🚀 Inicializando SuperAdmin Dashboard...');
+
+                if (!this.authService.isAuthenticated()) {
+                    console.log('🔐 Usuario no autenticado, redirigiendo a login...');
+                    window.location.href = 'index.html';
                     return;
                 }
 
-                let html = '';
-                branches.forEach(branch => {
-                    const whatsapp = branch.whatsapp || {};
-                    const statusBadge = this.getStatusBadge(whatsapp.status);
-                    const lastConnection = whatsapp.lastReadyAt ? 
-                        new Date(whatsapp.lastReadyAt).toLocaleString('es-CO') : 'Nunca';
-                    const phoneNumber = whatsapp.phone_number || 'No configurado';
+                const user = this.authService.getUser();
+                if (user.role !== 'super_admin') {
+                    console.log('🚫 Usuario no es super_admin, redirigiendo...');
+                    window.location.href = 'admin.html';
+                    return;
+                }
 
-                    html += `
-                        <div class="card mb-3">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-store"></i> ${branch.name}
-                                </h6>
-                                ${statusBadge}
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p><strong>Número:</strong> ${phoneNumber}</p>
-                                        <p><strong>Última conexión:</strong> ${lastConnection}</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="btn-group-vertical w-100" role="group">
-                                            <button class="btn btn-sm btn-success mb-1" 
-                                                    onclick="initializeBranchWhatsApp('${branch.id}')"
-                                                    ${whatsapp.status === 'ready' ? 'disabled' : ''}>
-                                                <i class="fas fa-plug"></i> Conectar
-                                            </button>
-                                            <button class="btn btn-sm btn-warning mb-1" 
-                                                    onclick="disconnectBranchWhatsApp('${branch.id}')"
-                                                    ${whatsapp.status !== 'ready' ? 'disabled' : ''}>
-                                                <i class="fas fa-unlink"></i> Desconectar
-                                            </button>
-                                            <button class="btn btn-sm btn-danger mb-1" 
-                                                    onclick="logoutBranchWhatsApp('${branch.id}')">
-                                                <i class="fas fa-sign-out-alt"></i> Desvincular
-                                            </button>
-                                            <button class="btn btn-sm btn-info" 
-                                                    onclick="showBranchQR('${branch.id}')"
-                                                    ${whatsapp.status !== 'qr' ? 'disabled' : ''}>
-                                                <i class="fas fa-qrcode"></i> Ver QR
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
+                console.log('✅ Usuario autenticado como super_admin');
+                console.log('👤 Usuario:', user);
+                this.setupUserInfo();
+                this.bindEvents();
+                
+                // Agregar botón de prueba
+                this.addTestButton();
+                
+                this.loadDashboard();
 
-                container.innerHTML = html;
+                // Verificar estado de IA al inicializar
+                this.checkAIStatus();
+
+                console.log('✅ Dashboard inicializado correctamente');
             }
 
+            addTestButton() {
+                const header = document.querySelector('.d-flex.justify-content-between.align-items-center');
+                if (header) {
+                    const testButton = document.createElement('button');
+                    testButton.className = 'btn btn-outline-info btn-sm ms-2';
+                    testButton.innerHTML = '<i class="fas fa-bug me-1"></i>Test API';
+                    testButton.onclick = () => this.testAPI();
+                    header.appendChild(testButton);
+                }
+            }
+
+            async testAPI() {
+                try {
+                    console.log('🧪 Probando API...');
+                    const response = await fetch('http://localhost:4000/api/admin/dashboard/stats', {
+                        headers: {
+                            'Authorization': `Bearer ${this.authService.getToken()}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    console.log('📡 Response status:', response.status);
+                    const data = await response.json();
+                    console.log('📄 Response data:', data);
+                    
+                    alert(`API Test:\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2)}`);
+                } catch (error) {
+                    console.error('❌ Error en test API:', error);
+                    alert('Error en test API: ' + error.message);
+                }
+            }
         }
 
-        // Initialize dashboard
-        let dashboard;
+        // Inicializar dashboard
+        const dashboard = new SuperAdminDashboard();
+        
+        // Hacer las funciones disponibles globalmente
+        window.dashboard = dashboard;
+        
         document.addEventListener('DOMContentLoaded', () => {
-            dashboard = new SuperAdminDashboard();
+            dashboard.init();
         });
     </script>
 </body>

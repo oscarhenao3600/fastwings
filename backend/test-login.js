@@ -1,15 +1,10 @@
 const fetch = require('node-fetch');
 
-async function testServer() {
+async function testLogin() {
     try {
-        console.log('🧪 Probando servidor...');
+        console.log('🧪 Probando login...');
         
-        // Test 1: Endpoint básico
-        const basicResponse = await fetch('http://localhost:4000/');
-        const basicData = await basicResponse.json();
-        console.log('✅ Endpoint básico:', basicData);
-        
-        // Test 2: Login
+        // Test 1: Login
         const loginResponse = await fetch('http://localhost:4000/api/auth/login', {
             method: 'POST',
             headers: {
@@ -22,10 +17,12 @@ async function testServer() {
         });
         
         const loginData = await loginResponse.json();
-        console.log('✅ Login exitoso:', loginData);
+        console.log('✅ Login response:', loginData);
         
         if (loginData.token) {
-            // Test 3: Dashboard con token
+            console.log('🔑 Token generado:', loginData.token.substring(0, 50) + '...');
+            
+            // Test 2: Dashboard con token
             const dashboardResponse = await fetch('http://localhost:4000/api/admin/dashboard/stats', {
                 headers: {
                     'Authorization': `Bearer ${loginData.token}`,
@@ -33,19 +30,12 @@ async function testServer() {
                 }
             });
             
+            console.log('📡 Dashboard status:', dashboardResponse.status);
             const dashboardData = await dashboardResponse.json();
-            console.log('✅ Dashboard data:', dashboardData);
+            console.log('📄 Dashboard data:', dashboardData);
             
-            // Test 4: Branches
-            const branchesResponse = await fetch('http://localhost:4000/api/admin/branches', {
-                headers: {
-                    'Authorization': `Bearer ${loginData.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const branchesData = await branchesResponse.json();
-            console.log('✅ Branches data:', branchesData);
+        } else {
+            console.log('❌ No se generó token');
         }
         
     } catch (error) {
@@ -53,4 +43,4 @@ async function testServer() {
     }
 }
 
-testServer();
+testLogin();

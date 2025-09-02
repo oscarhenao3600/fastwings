@@ -1,44 +1,50 @@
-const axios = require('axios');
+const fetch = require('node-fetch');
 
-async function testAuth() {
+async function testServer() {
+  console.log('🧪 Probando servidor...');
+  
   try {
-    console.log('🔐 Probando autenticación...');
-    
-    // 1. Login
-    const loginResponse = await axios.post('http://localhost:4000/api/auth/login', {
-      email: 'admin@fastwings.com',
-      password: 'admin123'
+    // Test 1: Login
+    console.log('1️⃣ Probando login...');
+    const loginResponse = await fetch('http://localhost:4000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'admin@fastwings.com',
+        password: 'admin123'
+      })
     });
     
-    console.log('✅ Login exitoso');
-    console.log('Token:', loginResponse.data.token.substring(0, 50) + '...');
-    console.log('Usuario:', loginResponse.data.user);
+    const loginData = await loginResponse.json();
+    console.log('Login response:', loginData);
     
-    const token = loginResponse.data.token;
-    
-    // 2. Probar dashboard con token
-    const dashboardResponse = await axios.get('http://localhost:4000/api/admin/dashboard/stats', {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    if (loginData.token) {
+      console.log('✅ Login exitoso');
+      
+      // Test 2: Dashboard
+      console.log('2️⃣ Probando dashboard...');
+      const dashboardResponse = await fetch('http://localhost:4000/api/admin/dashboard/stats', {
+        headers: {
+          'Authorization': `Bearer ${loginData.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const dashboardData = await dashboardResponse.json();
+      console.log('Dashboard response:', dashboardData);
+      
+      if (dashboardResponse.ok) {
+        console.log('✅ Dashboard funciona');
+      } else {
+        console.log('❌ Dashboard falló');
       }
-    });
-    
-    console.log('✅ Dashboard cargado exitosamente');
-    console.log('Datos:', dashboardResponse.data);
-    
-    // 3. Probar sucursales
-    const branchesResponse = await axios.get('http://localhost:4000/api/admin/branches', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    console.log('✅ Sucursales cargadas exitosamente');
-    console.log('Sucursales:', branchesResponse.data.branches.length);
+    } else {
+      console.log('❌ Login falló');
+    }
     
   } catch (error) {
-    console.error('❌ Error:', error.response?.data || error.message);
+    console.error('❌ Error en test:', error.message);
   }
 }
 
-testAuth();
+testServer();

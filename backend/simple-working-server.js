@@ -17,7 +17,8 @@ app.use('/frontend-admin', express.static(path.join(__dirname, '../frontend-admi
 // Simular base de datos en memoria
 const users = [
   {
-    id: '1',
+    id: '68b32d3167697f77c914d377',
+    _id: '68b32d3167697f77c914d377',
     name: 'Administrador',
     email: 'admin@fastwings.com',
     password: 'admin123',
@@ -54,22 +55,32 @@ const branches = [
 const auth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   
+  console.log('🔐 Auth middleware - Token recibido:', token ? 'Sí' : 'No');
+  
   if (!token) {
+    console.log('❌ Token no proporcionado');
     return res.status(401).json({ error: 'Token no proporcionado' });
   }
   
   try {
-    const decoded = jwt.verify(token, 'fake-secret');
-    const user = users.find(u => u.id === decoded.id);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fake-secret');
+    console.log('🔍 Token decodificado:', decoded);
+    
+    // Buscar usuario por id o _id
+    const user = users.find(u => u.id === decoded.id || u._id === decoded.id);
+    console.log('👤 Usuario encontrado:', user ? user.email : 'No encontrado');
+    console.log('📋 Usuarios disponibles:', users.map(u => ({ id: u.id, _id: u._id, email: u.email })));
     
     if (!user) {
+      console.log('❌ Usuario no encontrado para ID:', decoded.id);
       return res.status(401).json({ error: 'Usuario no encontrado' });
     }
     
     req.user = user;
+    console.log('✅ Usuario autenticado:', user.email);
     next();
   } catch (error) {
-    console.error('Error en autenticación:', error);
+    console.error('❌ Error en autenticación:', error);
     return res.status(401).json({ error: 'Token inválido' });
   }
 };
@@ -93,7 +104,7 @@ app.post('/api/auth/login', (req, res) => {
   
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
-    'fake-secret',
+    process.env.JWT_SECRET || 'fake-secret',
     { expiresIn: '24h' }
   );
   
@@ -103,6 +114,7 @@ app.post('/api/auth/login', (req, res) => {
     token,
     user: {
       id: user.id,
+      _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role
@@ -132,6 +144,8 @@ app.get('/api/branch-whatsapp/branches/status', auth, (req, res) => {
   res.json({ branches });
 });
 
+const qrcode = require('qrcode');
+
 // Inicializar WhatsApp para una sucursal
 app.post('/api/branch-whatsapp/branch/:branchId/initialize', auth, (req, res) => {
   const { branchId } = req.params;
@@ -142,19 +156,26 @@ app.post('/api/branch-whatsapp/branch/:branchId/initialize', auth, (req, res) =>
     return res.status(404).json({ error: 'Sucursal no encontrada' });
   }
   
-  // Simular generación de QR
-  const qrCode = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  // Generar QR real
+  const qrData = `https://wa.me/${phoneNumber.replace('+', '')}?text=Hola%20desde%20FastWings%20${branch.name}`;
   
-  branch.whatsapp.phone_number = phoneNumber;
-  branch.whatsapp.status = 'qr_ready';
-  branch.whatsapp.qr_code = qrCode;
-  branch.whatsapp.is_connected = false;
-  
-  console.log(`QR generado para sucursal ${branch.name} con número ${phoneNumber}`);
-  
-  res.json({ 
-    message: 'WhatsApp inicializado exitosamente para la sucursal',
-    qr_ready: true
+  qrcode.toDataURL(qrData, { margin: 1, scale: 6 }, (err, qrCode) => {
+    if (err) {
+      console.error('Error generando QR:', err);
+      return res.status(500).json({ error: 'Error generando código QR' });
+    }
+    
+    branch.whatsapp.phone_number = phoneNumber;
+    branch.whatsapp.status = 'qr_ready';
+    branch.whatsapp.qr_code = qrCode;
+    branch.whatsapp.is_connected = false;
+    
+    console.log(`QR generado para sucursal ${branch.name} con número ${phoneNumber}`);
+    
+    res.json({ 
+      message: 'WhatsApp inicializado exitosamente para la sucursal',
+      qr_ready: true
+    });
   });
 });
 
@@ -196,6 +217,23 @@ app.post('/api/branch-whatsapp/branch/:branchId/logout', auth, (req, res) => {
   res.json({ message: 'Sesión de WhatsApp desvinculada exitosamente de la sucursal' });
 });
 
+// Obtener estado de WhatsApp de una sucursal
+app.get('/api/branch-whatsapp/branch/:branchId/status', auth, (req, res) => {
+  const { branchId } = req.params;
+  
+  const branch = branches.find(b => b.id === branchId);
+  if (!branch) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
+  res.json({
+    status: branch.whatsapp.status,
+    is_connected: branch.whatsapp.is_connected,
+    phone_number: branch.whatsapp.phone_number,
+    lastReadyAt: branch.whatsapp.last_connection
+  });
+});
+
 // Obtener QR
 app.get('/api/branch-whatsapp/branch/:branchId/qr', auth, (req, res) => {
   const { branchId } = req.params;
@@ -207,11 +245,15 @@ app.get('/api/branch-whatsapp/branch/:branchId/qr', auth, (req, res) => {
   
   if (branch.whatsapp.status === 'qr_ready' && branch.whatsapp.qr_code) {
     res.json({ 
-      qrDataUrl: branch.whatsapp.qr_code,
+      ok: true,
+      dataUrl: branch.whatsapp.qr_code,
       status: branch.whatsapp.status
     });
   } else {
-    res.status(400).json({ error: 'QR no disponible' });
+    res.json({ 
+      ok: false,
+      message: 'QR no disponible. Primero debes inicializar WhatsApp para esta sucursal.'
+    });
   }
 });
 
@@ -238,6 +280,77 @@ app.get('/api/billing/stats', auth, (req, res) => {
 // Enviar facturas
 app.post('/api/billing/send/:branchId', auth, (req, res) => {
   res.json({ ordersProcessed: 0 });
+});
+
+// Enviar mensaje de WhatsApp
+app.post('/api/branch-whatsapp/branch/:branchId/send', auth, (req, res) => {
+  const { branchId } = req.params;
+  const { to, message } = req.body;
+  
+  const branch = branches.find(b => b.id === branchId);
+  if (!branch) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
+  if (!to || !message) {
+    return res.status(400).json({ error: 'Número de teléfono y mensaje son requeridos' });
+  }
+  
+  // Simular envío de mensaje
+  console.log(`📤 Mensaje enviado desde sucursal ${branch.name} a ${to}: ${message}`);
+  
+  res.json({ 
+    success: true,
+    message: 'Mensaje enviado exitosamente',
+    to: to,
+    branchId: branchId
+  });
+});
+
+// Configurar sucursal
+app.post('/api/branch-whatsapp/branch/:branchId/config', auth, (req, res) => {
+  const { branchId } = req.params;
+  const { systemNumber, ordersForwardNumber } = req.body;
+  
+  const branch = branches.find(b => b.id === branchId);
+  if (!branch) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
+  // Actualizar configuración
+  if (systemNumber) branch.systemNumber = systemNumber;
+  if (ordersForwardNumber) branch.ordersForwardNumber = ordersForwardNumber;
+  
+  console.log(`⚙️ Configuración actualizada para sucursal ${branch.name}`);
+  
+  res.json({ 
+    success: true,
+    message: 'Configuración actualizada exitosamente',
+    branch: {
+      id: branch.id,
+      name: branch.name,
+      systemNumber: branch.systemNumber,
+      ordersForwardNumber: branch.ordersForwardNumber
+    }
+  });
+});
+
+// Health check de WhatsApp
+app.get('/api/branch-whatsapp/health', auth, (req, res) => {
+  const healthData = branches.map(branch => ({
+    branchId: branch.id,
+    name: branch.name,
+    status: branch.whatsapp.status,
+    is_connected: branch.whatsapp.is_connected,
+    lastReadyAt: branch.whatsapp.last_connection,
+    hasQR: branch.whatsapp.status === 'qr_ready'
+  }));
+  
+  res.json({
+    totalBranches: branches.length,
+    connectedBranches: branches.filter(b => b.whatsapp.is_connected).length,
+    branches: healthData
+  });
 });
 
 const PORT = 4000;
