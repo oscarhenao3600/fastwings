@@ -2,26 +2,36 @@
   "name": "fastwings-backend",
   "version": "0.4.0",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "node simple-test-server.js",
+    "dev": "nodemon simple-test-server.js",
+    "test": "node test-step-by-step.js",
+    "test-pdf": "node test-pdf-simple.js",
+    "test-curl": "node test-curl.js",
     "seed": "node src/seed/seed_superadmin.js"
   },
   "dependencies": {
+    "@huggingface/inference": "^4.7.1",
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.0.1",
     "express-validator": "^6.15.0",
+    "form-data": "^4.0.4",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.2.2",
     "multer": "^1.4.5-lts.1",
+    "node-fetch": "^2.7.0",
     "nodemailer": "^6.9.3",
+    "pdf-parse": "^1.1.1",
     "pdfkit": "^0.13.0",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
     "tesseract.js": "^4.0.2",
-    "whatsapp-web.js": "^1.33.1"
+    "whatsapp-web.js": "^1.33.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

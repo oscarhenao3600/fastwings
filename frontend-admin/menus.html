@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastWings - Gestión de Menús</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: #2c3e50;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: all 0.2s ease;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background: #34495e;
+        }
+        .sidebar .nav-link.active {
+            background: #3498db;
+            color: white;
+        }
+        .main-content {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .card-header {
+            background: #f8f9fa;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+        .upload-area.dragover {
+            border-color: #3498db;
+            background: #e3f2fd;
+        }
+        .menu-preview {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .btn-upload {
+            background: #3498db;
+            border: none;
+            color: white;
+        }
+        .btn-upload:hover {
+            background: #2980b9;
+            color: white;
+        }
+        .btn-delete {
+            background: #e74c3c;
+            border: none;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #c0392b;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-wings me-2"></i>FastWings
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="super.html">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a class="nav-link active" href="menus.html">
+                            <i class="fas fa-utensils me-2"></i>Gestión de Menús
+                        </a>
+                        <a class="nav-link" href="whatsapp.html">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp
+                        </a>
+                        <a class="nav-link" href="orders.html">
+                            <i class="fas fa-shopping-cart me-2"></i>Pedidos
+                        </a>
+                        <a class="nav-link" href="users.html">
+                            <i class="fas fa-users me-2"></i>Usuarios
+                        </a>
+                        <a class="nav-link" href="billing.html">
+                            <i class="fas fa-chart-line me-2"></i>Facturación
+                        </a>
+                        <a class="nav-link" href="config.html">
+                            <i class="fas fa-cog me-2"></i>Configuración
+                        </a>
+                        <hr class="text-white">
+                        <a class="nav-link" href="#" onclick="logout()">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>
+                            <i class="fas fa-utensils me-2"></i>Gestión de Menús
+                        </h2>
+                        <div class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>
+                            <span id="currentDate"></span>
+                        </div>
+                    </div>
+
+                    <!-- Alertas -->
+                    <div id="alertContainer"></div>
+
+                    <!-- Sucursales -->
+                    <div class="row" id="branchesContainer">
+                        <!-- Las sucursales se cargarán dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class MenuManager {
+            constructor() {
+                this.baseURL = 'http://localhost:4000/api';
+                this.token = localStorage.getItem('token');
+                this.init();
+            }
+
+            init() {
+                if (!this.token) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                this.setCurrentDate();
+                this.loadBranches();
+            }
+
+            setCurrentDate() {
+                const now = new Date();
+                document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            async loadBranches() {
+                try {
+                    const response = await fetch(`${this.baseURL}/admin/branches`, {
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Error cargando sucursales');
+                    }
+
+                    const data = await response.json();
+                    this.renderBranches(data.branches);
+                } catch (error) {
+                    this.showAlert('Error cargando sucursales: ' + error.message, 'danger');
+                }
+            }
+
+            renderBranches(branches) {
+                const container = document.getElementById('branchesContainer');
+                let html = '';
+
+                branches.forEach(branch => {
+                    html += `
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-store me-2"></i>${branch.name}
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>Estado del Menú:</strong>
+                                        ${branch.menu.hasPdf ? 
+                                            '<span class="badge bg-success">PDF Cargado</span>' : 
+                                            '<span class="badge bg-warning">Sin PDF</span>'
+                                        }
+                                    </div>
+                                    
+                                    ${branch.menu.hasPdf ? `
+                                        <div class="mb-3">
+                                            <strong>Última actualización:</strong><br>
+                                            <small class="text-muted">
+                                                ${new Date(branch.menu.lastUpdated).toLocaleString('es-ES')}
+                                            </small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <a href="${this.baseURL}${branch.menu.pdfUrl}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>Ver PDF
+                                            </a>
+                                            <button class="btn btn-sm btn-delete" onclick="menuManager.deleteMenu('${branch.id}')">
+                                                <i class="fas fa-trash me-1"></i>Eliminar
+                                            </button>
+                                        </div>
+                                    ` : `
+                                        <div class="upload-area" onclick="menuManager.selectFile('${branch.id}')" 
+                                             ondrop="menuManager.handleDrop(event, '${branch.id}')" 
+                                             ondragover="menuManager.handleDragOver(event)" 
+                                             ondragleave="menuManager.handleDragLeave(event)">
+                                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                            <h6>Subir Menú PDF</h6>
+                                            <p class="text-muted mb-0">Arrastra un archivo PDF aquí o haz clic para seleccionar</p>
+                                            <input type="file" id="file-${branch.id}" accept=".pdf" style="display: none;" 
+                                                   onchange="menuManager.uploadFile('${branch.id}', this.files[0])">
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
+            selectFile(branchId) {
+                document.getElementById(`file-${branchId}`).click();
+            }
+
+            handleDragOver(event) {
+                event.preventDefault();
+                event.currentTarget.classList.add('dragover');
+            }
+
+            handleDragLeave(event) {
+                event.currentTarget.classList.remove('dragover');
+            }
+
+            handleDrop(event, branchId) {
+                event.preventDefault();
+                event.currentTarget.classList.remove('dragover');
+                
+                const files = event.dataTransfer.files;
+                if (files.length > 0) {
+                    this.uploadFile(branchId, files[0]);
+                }
+            }
+
+            async uploadFile(branchId, file) {
+                if (!file) return;
+
+                if (!file.type.includes('pdf')) {
+                    this.showAlert('Solo se permiten archivos PDF', 'warning');
+                    return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) { // 10MB
+                    this.showAlert('El archivo es demasiado grande. Máximo 10MB', 'warning');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('menu', file);
+
+                try {
+                    this.showAlert('Subiendo archivo...', 'info');
+                    
+                    const response = await fetch(`${this.baseURL}/branch/${branchId}/upload-menu`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error subiendo archivo');
+                    }
+
+                    this.showAlert('Menú PDF subido exitosamente', 'success');
+                    this.loadBranches(); // Recargar para mostrar el nuevo estado
+                } catch (error) {
+                    this.showAlert('Error subiendo archivo: ' + error.message, 'danger');
+                }
+            }
+
+            async deleteMenu(branchId) {
+                if (!confirm('¿Estás seguro de que quieres eliminar el menú PDF de esta sucursal?')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.baseURL}/branch/${branchId}/menu`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error eliminando menú');
+                    }
+
+                    this.showAlert('Menú PDF eliminado exitosamente', 'success');
+                    this.loadBranches(); // Recargar para mostrar el nuevo estado
+                } catch (error) {
+                    this.showAlert('Error eliminando menú: ' + error.message, 'danger');
+                }
+            }
+
+            showAlert(message, type) {
+                const container = document.getElementById('alertContainer');
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                container.innerHTML = '';
+                container.appendChild(alert);
+
+                // Auto-dismiss después de 5 segundos
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Inicializar el gestor de menús
+        const menuManager = new MenuManager();
+    </script>
+</body>
+</html>

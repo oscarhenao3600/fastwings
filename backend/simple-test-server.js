@@ -1,16 +1,80 @@
+﻿// Servidor FastWings con soporte para PDFs
+
+// Configuración de variables de entorno
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const qrcode = require('qrcode');
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const multer = require('multer');
+const fs = require('fs');
+const pdf = require('pdf-parse');
+const WhatsAppManager = require('./whatsapp-manager');
+const AIManager = require('./ai-manager');
+const SimpleDatabase = require('./simple-database');
+const setupPhoneEndpoints = require('./phone-endpoints');
 
 const app = express();
+
+// Inicializar managers
+const whatsappManager = new WhatsAppManager();
+const aiManager = new AIManager();
+const database = new SimpleDatabase();
+
+// Configurar managers
+whatsappManager.setAIManager(aiManager);
+whatsappManager.setDatabase(database);
+
+// Inicializar base de datos al arrancar
+database.connect()
+  .then(() => {
+    console.log('✅ Base de datos conectada al inicio');
+    // Cargar estado anterior de WhatsApp
+    whatsappManager.loadStateFromDatabase();
+  })
+  .catch(err => {
+    console.error('❌ Error conectando base de datos al inicio:', err);
+    console.log('ℹ️ Continuando sin base de datos...');
+  });
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use('/frontend-admin', express.static(path.join(__dirname, '../frontend-admin')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Configuración de multer para subir archivos PDF
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const branchId = req.params.branchId || 'default';
+    const timestamp = Date.now();
+    cb(null, `menu_${branchId}_${timestamp}.pdf`);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos PDF'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB máximo
+  }
+}).single('menu');
 
 // Usuario fijo
 const USER = {
@@ -22,11 +86,81 @@ const USER = {
   role: 'super_admin'
 };
 
+// Middleware de autenticación
+const auth = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Token no proporcionado' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, 'test-secret-key');
+    if (decoded.id === USER.id) {
+      req.user = USER;
+      next();
+    } else {
+      res.status(401).json({ error: 'Usuario no encontrado' });
+    }
+  } catch (error) {
+    res.status(401).json({ error: 'Token inválido' });
+  }
+};
+
+// Almacenar datos de WhatsApp por sucursal
+const whatsappData = {
+  'branch-1': { 
+    branchName: 'Sucursal Principal',
+    phoneNumber: null, 
+    qrCode: null, 
+    status: 'disconnected',
+    client: null,
+    lastReadyAt: null,
+    // Nuevos campos para teléfonos
+    orderPhone: '+573001234567', // Teléfono para pedidos
+    complaintPhone: '+573001234568', // Teléfono para reclamaciones
+    defaultMessages: {
+      welcome: '¡Hola! Bienvenido a FastWings. ¿En qué puedo ayudarte?',
+      menu: 'Aquí tienes nuestro menú: [MENÚ]',
+      order: 'Perfecto, tu pedido ha sido recibido. Te contactaremos pronto.',
+      goodbye: '¡Gracias por preferir FastWings! Que tengas un excelente día.',
+      aiPrompt: 'Eres un asistente virtual de FastWings, un restaurante de comida rápida. Debes ser amigable, profesional y ayudar a los clientes con sus pedidos, consultas sobre el menú y cualquier otra pregunta relacionada con nuestros servicios.'
+    },
+    conversationState: {},
+    menuPdf: null,
+    menuContent: null,
+    menuLastUpdated: null
+  },
+  'branch-2': { 
+    branchName: 'Sucursal Norte',
+    phoneNumber: null, 
+    qrCode: null, 
+    status: 'disconnected',
+    client: null,
+    lastReadyAt: null,
+    // Nuevos campos para teléfonos
+    orderPhone: '+573001234569', // Teléfono para pedidos
+    complaintPhone: '+573001234570', // Teléfono para reclamaciones
+    defaultMessages: {
+      welcome: '¡Hola! Bienvenido a FastWings Norte. ¿En qué puedo ayudarte?',
+      menu: 'Aquí tienes nuestro menú: [MENÚ]',
+      order: 'Perfecto, tu pedido ha sido recibido. Te contactaremos pronto.',
+      goodbye: '¡Gracias por preferir FastWings! Que tengas un excelente día.',
+      aiPrompt: 'Eres un asistente virtual de FastWings Norte, un restaurante de comida rápida. Debes ser amigable, profesional y ayudar a los clientes con sus pedidos, consultas sobre el menú y cualquier otra pregunta relacionada con nuestros servicios.'
+    },
+    conversationState: {},
+    menuPdf: null,
+    menuContent: null,
+    menuLastUpdated: null
+  }
+};
+
+// Configurar endpoints de teléfonos
+setupPhoneEndpoints(app, auth, database, whatsappData);
+
 // Login
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  
-  console.log('🔐 Login attempt:', { email, password });
   
   if (email === USER.email && password === USER.password) {
     const token = jwt.sign(
@@ -34,8 +168,6 @@ app.post('/api/auth/login', (req, res) => {
       'test-secret-key',
       { expiresIn: '24h' }
     );
-    
-    console.log('✅ Login successful for:', USER.email);
     
     res.json({
       token,
@@ -48,43 +180,12 @@ app.post('/api/auth/login', (req, res) => {
       }
     });
   } else {
-    console.log('❌ Login failed: Invalid credentials');
     res.status(401).json({ error: 'Credenciales inválidas' });
   }
 });
 
-// Middleware de autenticación
-const auth = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  console.log('🔐 Auth middleware - Token recibido:', token ? 'Sí' : 'No');
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Token no proporcionado' });
-  }
-  
-  try {
-    const decoded = jwt.verify(token, 'test-secret-key');
-    console.log('🔍 Token decodificado:', decoded);
-    
-    if (decoded.id === USER.id) {
-      req.user = USER;
-      console.log('✅ Usuario autenticado:', USER.email);
-      next();
-    } else {
-      console.log('❌ Usuario no encontrado para ID:', decoded.id);
-      res.status(401).json({ error: 'Usuario no encontrado' });
-    }
-  } catch (error) {
-    console.error('❌ Error en autenticación:', error);
-    res.status(401).json({ error: 'Token inválido' });
-  }
-};
-
 // Dashboard stats
 app.get('/api/admin/dashboard/stats', auth, (req, res) => {
-  console.log('📊 Dashboard request from user:', req.user.email);
-  
   res.json({
     totalBranches: 2,
     totalUsers: 1,
@@ -106,6 +207,11 @@ app.get('/api/admin/branches', auth, (req, res) => {
           status: whatsappData['branch-1']?.status || 'disconnected',
           qr_code: whatsappData['branch-1']?.qrCode || null,
           last_connection: whatsappData['branch-1']?.lastReadyAt || null
+        },
+        menu: {
+          hasPdf: !!whatsappData['branch-1']?.menuPdf,
+          pdfUrl: whatsappData['branch-1']?.menuPdf ? `/uploads/${whatsappData['branch-1'].menuPdf}` : null,
+          lastUpdated: whatsappData['branch-1']?.menuLastUpdated || null
         }
       },
       {
@@ -117,692 +223,829 @@ app.get('/api/admin/branches', auth, (req, res) => {
           status: whatsappData['branch-2']?.status || 'disconnected',
           qr_code: whatsappData['branch-2']?.qrCode || null,
           last_connection: whatsappData['branch-2']?.lastReadyAt || null
+        },
+        menu: {
+          hasPdf: !!whatsappData['branch-2']?.menuPdf,
+          pdfUrl: whatsappData['branch-2']?.menuPdf ? `/uploads/${whatsappData['branch-2'].menuPdf}` : null,
+          lastUpdated: whatsappData['branch-2']?.menuLastUpdated || null
         }
       }
     ]
   });
 });
 
-// Estado de WhatsApp por sucursal
-app.get('/api/branch-whatsapp/branches/status', auth, (req, res) => {
-  res.json({
-    branches: [
-      {
-        id: 'branch-1',
-        name: 'Sucursal Principal',
-        whatsapp: {
-          phone_number: whatsappData['branch-1']?.phoneNumber || null,
-          is_connected: whatsappData['branch-1']?.status === 'connected',
-          status: whatsappData['branch-1']?.status || 'disconnected',
-          qr_code: whatsappData['branch-1']?.qrCode || null,
-          last_connection: whatsappData['branch-1']?.lastReadyAt || null
-        }
-      },
-      {
-        id: 'branch-2',
-        name: 'Sucursal Norte',
-        whatsapp: {
-          phone_number: whatsappData['branch-2']?.phoneNumber || null,
-          is_connected: whatsappData['branch-2']?.status === 'connected',
-          status: whatsappData['branch-2']?.status || 'disconnected',
-          qr_code: whatsappData['branch-2']?.qrCode || null,
-          last_connection: whatsappData['branch-2']?.lastReadyAt || null
-        }
-      }
-    ]
-  });
-});
-
-// Almacenar datos de WhatsApp por sucursal
-const whatsappData = {
-  'branch-1': { 
-    phoneNumber: null, 
-    qrCode: null, 
-    status: 'disconnected',
-    client: null,
-    lastReadyAt: null,
-    defaultMessages: {
-      welcome: '¡Hola! Bienvenido a FastWings. ¿En qué puedo ayudarte?',
-      menu: 'Aquí tienes nuestro menú: [MENÚ]',
-      order: 'Perfecto, tu pedido ha sido recibido. Te contactaremos pronto.',
-      goodbye: '¡Gracias por preferir FastWings! Que tengas un excelente día.',
-      aiPrompt: 'Eres un asistente virtual de FastWings, un restaurante de comida rápida. Debes ser amigable, profesional y ayudar a los clientes con sus pedidos, consultas sobre el menú y cualquier otra pregunta relacionada con nuestros servicios.'
+// Endpoint para subir carta PDF de una sucursal
+app.post('/api/branch/:branchId/upload-menu', auth, (req, res) => {
+  upload(req, res, async (err) => {
+    const { branchId } = req.params;
+    
+    console.log(`Subiendo carta PDF para sucursal ${branchId}`);
+    
+    if (err) {
+      console.error(`Error en multer:`, err);
+      return res.status(400).json({ error: 'Error procesando el archivo', details: err.message });
     }
-  },
-  'branch-2': { 
-    phoneNumber: null, 
-    qrCode: null, 
-    status: 'disconnected',
-    client: null,
-    lastReadyAt: null,
-    defaultMessages: {
-      welcome: '¡Hola! Bienvenido a FastWings Norte. ¿En qué puedo ayudarte?',
-      menu: 'Aquí tienes nuestro menú: [MENÚ]',
-      order: 'Perfecto, tu pedido ha sido recibido. Te contactaremos pronto.',
-      goodbye: '¡Gracias por preferir FastWings! Que tengas un excelente día.',
-      aiPrompt: 'Eres un asistente virtual de FastWings Norte, un restaurante de comida rápida. Debes ser amigable, profesional y ayudar a los clientes con sus pedidos, consultas sobre el menú y cualquier otra pregunta relacionada con nuestros servicios.'
-    }
-  }
-};
-
-// Función para crear cliente de WhatsApp real
-function createWhatsAppClient(branchId) {
-  console.log(`🔧 ===== CREANDO CLIENTE WHATSAPP REAL =====`);
-  console.log(`📍 Sucursal: ${branchId}`);
-  console.log(`🔑 Client ID: branch_${branchId}`);
-  console.log(`🔧 ===========================================`);
-  
-  const client = new Client({
-    authStrategy: new LocalAuth({ clientId: `branch_${branchId}` }),
-    puppeteer: {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ],
-      executablePath: process.env.CHROME_PATH || undefined,
-      timeout: 120000
-    }
-  });
-
-  client.on('qr', async (qr) => {
-    console.log(`📱 ===== QR REAL GENERADO =====`);
-    console.log(`📍 Sucursal: ${branchId}`);
-    console.log(`🔑 Client ID: branch_${branchId}`);
-    console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-    console.log(`📱 ============================`);
     
     try {
-      const qrCode = await qrcode.toDataURL(qr, { margin: 1, scale: 6 });
-      whatsappData[branchId].qrCode = qrCode;
-      whatsappData[branchId].status = 'qr_ready';
+      if (!req.file) {
+        return res.status(400).json({ error: 'No se proporcionó ningún archivo' });
+      }
       
-      console.log(`✅ QR REAL guardado para sucursal ${branchId}`);
-      console.log(`📊 Estado actualizado a: qr_ready`);
+      // Extraer contenido del PDF
+      const pdfPath = req.file.path;
+      const dataBuffer = fs.readFileSync(pdfPath);
+      
+      console.log(`Extrayendo contenido del PDF...`);
+      const pdfData = await pdf(dataBuffer);
+      const extractedText = pdfData.text;
+      
+      console.log(`Contenido extraído: ${extractedText.length} caracteres`);
+      
+      // Guardar información en whatsappData
+      whatsappData[branchId].menuPdf = req.file.filename;
+      whatsappData[branchId].menuContent = extractedText;
+      whatsappData[branchId].menuLastUpdated = new Date().toISOString();
+      
+      // Configurar contenido del menú en AI Manager
+      aiManager.setMenuContent(branchId, extractedText);
+      
+      console.log(`Información guardada para sucursal ${branchId}`);
+      console.log(`Menú configurado en IA para sucursal ${branchId}`);
+      
+      res.json({
+        success: true,
+        message: 'Carta PDF subida y procesada exitosamente',
+        data: {
+          filename: req.file.filename,
+          size: req.file.size,
+          contentLength: extractedText.length,
+          lastUpdated: whatsappData[branchId].menuLastUpdated
+        }
+      });
+      
     } catch (error) {
-      console.error(`❌ Error generando QR real para sucursal ${branchId}:`, error);
+      console.error(`Error procesando PDF:`, error);
+      res.status(500).json({ 
+        error: 'Error procesando el archivo PDF',
+        details: error.message 
+      });
     }
   });
+});
 
-  client.on('ready', () => {
-    console.log(`✅ ===== WHATSAPP REAL CONECTADO =====`);
-    console.log(`📍 Sucursal: ${branchId}`);
-    console.log(`📱 Cliente listo para recibir mensajes`);
-    console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-    console.log(`✅ ======================================`);
-    whatsappData[branchId].status = 'connected';
-    whatsappData[branchId].qrCode = null;
+// Endpoint para obtener información del menú de una sucursal
+app.get('/api/branch/:branchId/menu', auth, (req, res) => {
+  const { branchId } = req.params;
+  
+  const branchData = whatsappData[branchId];
+  if (!branchData) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
+  res.json({
+    success: true,
+    data: {
+      hasPdf: !!branchData.menuPdf,
+      pdfUrl: branchData.menuPdf ? `/uploads/${branchData.menuPdf}` : null,
+      lastUpdated: branchData.menuLastUpdated,
+      contentPreview: branchData.menuContent ? 
+        branchData.menuContent.substring(0, 200) + '...' : null
+    }
+  });
+});
+
+// Endpoint para eliminar carta PDF de una sucursal
+app.delete('/api/branch/:branchId/menu', auth, (req, res) => {
+  const { branchId } = req.params;
+  
+  const branchData = whatsappData[branchId];
+  if (!branchData) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
+  try {
+    // Eliminar archivo físico si existe
+    if (branchData.menuPdf) {
+      const filePath = path.join(__dirname, 'uploads', branchData.menuPdf);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`Archivo eliminado: ${branchData.menuPdf}`);
+      }
+    }
+    
+    // Limpiar datos en memoria
+    branchData.menuPdf = null;
+    branchData.menuContent = null;
+    branchData.menuLastUpdated = null;
+    
+    console.log(`Carta PDF eliminada de sucursal ${branchId}`);
+    
+    res.json({
+      success: true,
+      message: 'Carta PDF eliminada exitosamente'
+    });
+    
+  } catch (error) {
+    console.error(`Error eliminando carta PDF:`, error);
+    res.status(500).json({ 
+      error: 'Error eliminando el archivo',
+      details: error.message 
+    });
+  }
+});
+
+// ===== ENDPOINTS FALTANTES PARA EL FRONTEND =====
+
+// Endpoint para obtener usuarios
+app.get('/api/admin/users', auth, (req, res) => {
+  res.json({
+    users: [
+      {
+        id: 1,
+        name: 'Administrador Principal',
+        email: 'admin@fastwings.com',
+        role: 'super_admin',
+        status: 'active',
+        createdAt: '2025-01-01T00:00:00.000Z'
+      },
+      {
+        id: 2,
+        name: 'Gerente Sucursal',
+        email: 'gerente@fastwings.com',
+        role: 'admin',
+        status: 'active',
+        createdAt: '2025-01-01T00:00:00.000Z'
+      }
+    ]
+  });
+});
+
+// Endpoint para obtener pedidos
+app.get('/api/orders', auth, (req, res) => {
+  res.json({
+    orders: [
+      {
+        id: 'ORD-001',
+        customer: 'Juan Pérez',
+        phone: '+573001234567',
+        items: [
+          { name: 'Hamburguesa Clásica', quantity: 2, price: 8.99 },
+          { name: 'Papas Fritas', quantity: 1, price: 3.99 }
+        ],
+        total: 21.97,
+        status: 'pending',
+        branch: 'branch-1',
+        createdAt: '2025-01-02T10:30:00.000Z'
+      },
+      {
+        id: 'ORD-002',
+        customer: 'María García',
+        phone: '+573001234568',
+        items: [
+          { name: 'Pizza Margherita', quantity: 1, price: 14.99 },
+          { name: 'Refresco', quantity: 2, price: 2.99 }
+        ],
+        total: 20.97,
+        status: 'completed',
+        branch: 'branch-2',
+        createdAt: '2025-01-02T11:15:00.000Z'
+      }
+    ]
+  });
+});
+
+// Endpoint para obtener estadísticas de facturación
+app.get('/api/billing/stats', auth, (req, res) => {
+  res.json({
+    totalRevenue: 42.94,
+    totalOrders: 2,
+    averageOrderValue: 21.47,
+    monthlyRevenue: 42.94,
+    topProducts: [
+      { name: 'Hamburguesa Clásica', sales: 2 },
+      { name: 'Pizza Margherita', sales: 1 },
+      { name: 'Papas Fritas', sales: 1 }
+    ],
+    revenueByBranch: [
+      { branch: 'branch-1', revenue: 21.97 },
+      { branch: 'branch-2', revenue: 20.97 }
+    ]
+  });
+});
+
+// Endpoint para obtener estado de WhatsApp de todas las sucursales
+app.get('/api/whatsapp/status', auth, async (req, res) => {
+  try {
+    const branches = Object.keys(whatsappData);
+    const status = await Promise.all(branches.map(async (branchId) => {
+      const realStatus = whatsappManager.getStatus(branchId);
+      const realQR = whatsappManager.getQRCode(branchId);
+      const isConnected = whatsappManager.isConnected(branchId);
+      
+      // Obtener configuración desde BD si está disponible
+      let dbConfig = null;
+      try {
+        dbConfig = await database.getWhatsAppConfig(branchId);
+      } catch (error) {
+        console.log(`No hay configuración BD para ${branchId}:`, error.message);
+      }
+      
+      // Obtener teléfonos desde BD
+      let phones = { orderPhone: '', complaintPhone: '' };
+      try {
+        phones = await database.getPhoneNumbers(branchId);
+      } catch (error) {
+        console.log(`No hay teléfonos en BD para ${branchId}:`, error.message);
+      }
+      
+      return {
+        branchId,
+        branchName: whatsappData[branchId].branchName || (branchId === 'branch-1' ? 'Sucursal Principal' : 'Sucursal Norte'),
+        whatsapp: {
+          phone_number: whatsappData[branchId]?.phoneNumber || null,
+          is_connected: isConnected,
+          status: realStatus,
+          qr_code: realQR || dbConfig?.qrCode || null,
+          last_connection: whatsappData[branchId]?.lastReadyAt || dbConfig?.lastConnection || null
+        },
+        phones: {
+          orderPhone: phones.orderPhone || whatsappData[branchId]?.orderPhone || '',
+          complaintPhone: phones.complaintPhone || whatsappData[branchId]?.complaintPhone || ''
+        },
+        menu: {
+          hasPdf: !!whatsappData[branchId]?.menuPdf,
+          pdfUrl: whatsappData[branchId]?.menuPdf ? `/uploads/${whatsappData[branchId].menuPdf}` : null,
+          lastUpdated: whatsappData[branchId]?.menuLastUpdated || null
+        }
+      };
+    }));
+
+    res.json({ branches: status });
+  } catch (error) {
+    console.error('Error obteniendo estado de WhatsApp:', error);
+    res.status(500).json({ 
+      error: 'Error obteniendo estado de WhatsApp',
+      details: error.message 
+    });
+  }
+});
+
+// ===== ENDPOINTS DE WHATSAPP =====
+
+// Conectar WhatsApp para una sucursal
+app.post('/api/whatsapp/branch/:branchId/connect', auth, async (req, res) => {
+  const { branchId } = req.params;
+  
+  console.log(`Iniciando conexión de WhatsApp para sucursal ${branchId}`);
+  
+  try {
+    // Crear cliente WhatsApp real
+    await whatsappManager.createClient(branchId);
+    
+    // Actualizar datos locales
+    whatsappData[branchId].status = 'connecting';
     whatsappData[branchId].lastReadyAt = new Date().toISOString();
-  });
-
-  client.on('loading_screen', (percent, message) => {
-    console.log(`⏳ Cargando WhatsApp (${branchId}): ${percent}% - ${message}`);
-  });
-
-  client.on('change_state', (state) => {
-    console.log(`🔄 Estado del cliente (${branchId}): ${state}`);
-  });
-
-  client.on('authenticated', () => {
-    console.log(`🔐 Autenticado (${branchId})`);
-  });
-
-  client.on('auth_failure', (msg) => {
-    console.log(`❌ Error de autenticación para sucursal ${branchId}: ${msg}`);
-    whatsappData[branchId].status = 'auth_failure';
-    whatsappData[branchId].qrCode = null;
-  });
-
-  client.on('disconnected', (reason) => {
-    console.log(`❌ WhatsApp desconectado para sucursal ${branchId}: ${reason}`);
-    whatsappData[branchId].status = 'disconnected';
-    whatsappData[branchId].qrCode = null;
-  });
-
-  client.on('auth_failure', (msg) => {
-    console.log(`❌ Error de autenticación para sucursal ${branchId}: ${msg}`);
-    whatsappData[branchId].status = 'auth_failure';
-    whatsappData[branchId].qrCode = null;
-  });
-
-  // Event listener para mensajes entrantes - IA automática
-  client.on('message', async (msg) => {
-    console.log(`📨 ===== MENSAJE RECIBIDO =====`);
-    console.log(`📍 Sucursal: ${branchId}`);
-    console.log(`👤 De: ${msg.from}`);
-    console.log(`💬 Mensaje: ${msg.body}`);
-    console.log(`📱 ============================`);
     
-    try {
-      // Solo responder a mensajes de texto (no archivos, stickers, etc.)
-      if (msg.type === 'chat' || msg.type === 'text') {
-        const userMessage = msg.body.toLowerCase().trim();
-        const response = await generateAIResponse(userMessage, branchId);
-        
-        console.log(`🤖 Respuesta IA: ${response}`);
-        
-        // Enviar respuesta
-        await msg.reply(response);
-        
-        console.log(`✅ Respuesta enviada exitosamente`);
-      } else {
-        console.log(`⚠️ Mensaje ignorado - tipo: ${msg.type}`);
-      }
-    } catch (error) {
-      console.error(`❌ Error procesando mensaje para sucursal ${branchId}:`, error);
-      try {
-        await msg.reply('Lo siento, estoy teniendo problemas técnicos. Por favor, intenta más tarde.');
-      } catch (replyError) {
-        console.error(`❌ Error enviando mensaje de error:`, replyError);
-      }
-    }
-  });
-
-  return client;
-}
-
-// Función para generar respuestas de IA
-async function generateAIResponse(userMessage, branchId) {
-  console.log(`🤖 ===== GENERANDO RESPUESTA IA =====`);
-  console.log(`📍 Sucursal: ${branchId}`);
-  console.log(`💬 Mensaje del usuario: ${userMessage}`);
-  
-  const data = whatsappData[branchId];
-  const messages = data?.defaultMessages || {};
-  
-  // Respuestas basadas en palabras clave
-  if (userMessage.includes('hola') || userMessage.includes('buenos días') || userMessage.includes('buenas')) {
-    return messages.welcome || '¡Hola! Bienvenido a FastWings. ¿En qué puedo ayudarte?';
-  }
-  
-  if (userMessage.includes('menú') || userMessage.includes('menu') || userMessage.includes('comida')) {
-    return messages.menu || 'Aquí tienes nuestro menú: 🍔 Hamburguesas, 🍕 Pizzas, 🥤 Bebidas, 🍟 Papas fritas. ¿Qué te gustaría ordenar?';
-  }
-  
-  if (userMessage.includes('pedido') || userMessage.includes('ordenar') || userMessage.includes('comprar')) {
-    return messages.order || 'Perfecto, tu pedido ha sido recibido. Te contactaremos pronto para confirmar los detalles.';
-  }
-  
-  if (userMessage.includes('horario') || userMessage.includes('horarios') || userMessage.includes('abierto')) {
-    return 'Nuestro horario de atención es de lunes a domingo de 11:00 AM a 10:00 PM. ¡Te esperamos!';
-  }
-  
-  if (userMessage.includes('entrega') || userMessage.includes('delivery') || userMessage.includes('domicilio')) {
-    return 'Ofrecemos servicio de entrega a domicilio. El tiempo de entrega es de 30-45 minutos. Costo de envío: $2.000.';
-  }
-  
-  if (userMessage.includes('precio') || userMessage.includes('costo') || userMessage.includes('cuánto')) {
-    return 'Nuestros precios varían según el producto. Hamburguesas desde $15.000, Pizzas desde $25.000. ¿Te gustaría ver el menú completo?';
-  }
-  
-  if (userMessage.includes('gracias') || userMessage.includes('thank')) {
-    return messages.goodbye || '¡Gracias por preferir FastWings! Que tengas un excelente día.';
-  }
-  
-  if (userMessage.includes('ayuda') || userMessage.includes('help')) {
-    return 'Puedo ayudarte con: 📋 Menú, 🛒 Pedidos, 🕐 Horarios, 🚚 Entregas, 💰 Precios. ¿Qué necesitas?';
-  }
-  
-  // Respuesta por defecto
-  return messages.goodbye || '¡Hola! Soy el asistente virtual de FastWings. Puedo ayudarte con información sobre nuestro menú, pedidos, horarios y más. ¿En qué puedo ayudarte?';
-}
-
-// Inicializar WhatsApp para una sucursal
-app.post('/api/branch-whatsapp/branch/:branchId/initialize', auth, (req, res) => {
-  const { branchId } = req.params;
-  const { phoneNumber } = req.body;
-  
-  console.log(`🚀 ===== INICIALIZANDO WHATSAPP REAL =====`);
-  console.log(`📍 Sucursal: ${branchId}`);
-  console.log(`📱 Número: ${phoneNumber}`);
-  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-  
-  try {
-    // Verificar si ya existe un cliente
-    if (whatsappData[branchId] && whatsappData[branchId].client) {
-      console.log(`⚠️ Cliente ya existe para sucursal ${branchId}, destruyendo...`);
-      try {
-        whatsappData[branchId].client.destroy();
-      } catch (destroyError) {
-        console.log(`⚠️ Error destruyendo cliente anterior:`, destroyError.message);
-      }
-    }
+    console.log(`Cliente WhatsApp creado para sucursal ${branchId}`);
     
-    // Crear cliente de WhatsApp real
-    console.log(`🔧 Creando cliente real para sucursal ${branchId}...`);
-    const client = createWhatsAppClient(branchId);
-    whatsappData[branchId].client = client;
-    whatsappData[branchId].phoneNumber = phoneNumber;
-    whatsappData[branchId].status = 'initializing';
-    whatsappData[branchId].qrCode = null;
-    
-    console.log(`📊 Estado actualizado a: initializing`);
-    
-    // Inicializar cliente real
-    console.log(`🚀 Inicializando cliente real...`);
-    client.initialize().catch(error => {
-      console.error(`❌ Error inicializando cliente real para sucursal ${branchId}:`, error);
-      console.error(`📋 Stack trace:`, error.stack);
-      whatsappData[branchId].status = 'error';
-      whatsappData[branchId].error = error.message;
-    });
-    
-    console.log(`✅ Cliente WhatsApp REAL creado para sucursal ${branchId}`);
-    console.log(`🚀 ==============================================`);
-    
-    res.json({ 
-      message: 'WhatsApp REAL inicializado exitosamente para la sucursal',
-      qr_ready: true,
-      status: 'initializing'
-    });
-  } catch (error) {
-    console.error('❌ Error inicializando WhatsApp REAL:', error);
-    console.error('📋 Stack trace:', error.stack);
-    res.status(500).json({ error: 'Error inicializando WhatsApp REAL' });
-  }
-});
-
-// Regenerar QR - Forzar nueva generación
-app.post('/api/branch-whatsapp/branch/:branchId/regenerate-qr', auth, (req, res) => {
-  const { branchId } = req.params;
-  
-  console.log(`🔄 ===== REGENERANDO QR =====`);
-  console.log(`📍 Sucursal: ${branchId}`);
-  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-  
-  try {
-    const data = whatsappData[branchId];
-    
-    if (!data) {
-      console.log(`❌ No hay datos para sucursal ${branchId}`);
-      return res.status(404).json({ error: 'Sucursal no encontrada' });
-    }
-    
-    // Si hay un cliente existente, destruirlo
-    if (data.client) {
-      console.log(`⚠️ Destruyendo cliente existente para regenerar QR...`);
-      try {
-        data.client.destroy();
-      } catch (destroyError) {
-        console.log(`⚠️ Error destruyendo cliente anterior:`, destroyError.message);
-      }
-      data.client = null;
-    }
-    
-    // Limpiar QR anterior
-    data.qrCode = null;
-    data.status = 'initializing';
-    data.error = null;
-    
-    // Crear nuevo cliente
-    console.log(`🔧 Creando nuevo cliente para regenerar QR...`);
-    const client = createWhatsAppClient(branchId);
-    data.client = client;
-    
-    // Inicializar cliente
-    console.log(`🚀 Inicializando nuevo cliente...`);
-    client.initialize().catch(error => {
-      console.error(`❌ Error inicializando cliente para regenerar QR en sucursal ${branchId}:`, error);
-      data.status = 'error';
-      data.error = error.message;
-    });
-    
-    console.log(`✅ QR en proceso de regeneración para sucursal ${branchId}`);
-    console.log(`🔄 ================================`);
-    
-    res.json({ 
-      message: 'QR en proceso de regeneración. Espera unos segundos y solicita el QR nuevamente.',
-      status: 'regenerating'
-    });
-  } catch (error) {
-    console.error('❌ Error regenerando QR:', error);
-    res.status(500).json({ error: 'Error regenerando QR' });
-  }
-});
-
-// Obtener QR
-app.get('/api/branch-whatsapp/branch/:branchId/qr', auth, (req, res) => {
-  const { branchId } = req.params;
-  
-  console.log(`📱 ===== SOLICITANDO QR =====`);
-  console.log(`📍 Sucursal: ${branchId}`);
-  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-  
-  const data = whatsappData[branchId];
-  
-  console.log(`📊 Estado actual: ${data ? data.status : 'no data'}`);
-  console.log(`🔍 Tiene QR: ${data && data.qrCode ? 'Sí' : 'No'}`);
-  console.log(`📱 =========================`);
-  
-  if (data && data.qrCode && data.status === 'qr_ready') {
-    console.log(`✅ Enviando QR para sucursal ${branchId}`);
-    res.json({ 
-      ok: true,
-      dataUrl: data.qrCode,
-      status: data.status
-    });
-  } else if (data && data.status === 'initializing') {
-    console.log(`⏳ Cliente en inicialización para sucursal ${branchId}`);
-    res.json({ 
-      ok: false,
-      message: 'Cliente en proceso de inicialización. Espera unos segundos y vuelve a intentar.',
-      status: 'initializing',
-      retryAfter: 5
-    });
-  } else if (data && data.status === 'connected') {
-    console.log(`✅ Cliente ya conectado para sucursal ${branchId}`);
-    res.json({ 
-      ok: false,
-      message: 'WhatsApp ya está conectado para esta sucursal.',
-      status: 'connected',
-      isConnected: true
-    });
-  } else {
-    console.log(`❌ QR no disponible para sucursal ${branchId}`);
-    console.log(`📋 Razón: ${!data ? 'No hay datos' : !data.qrCode ? 'No hay QR' : 'Estado incorrecto'}`);
-    
-    res.json({ 
-      ok: false,
-      message: 'QR no disponible. Primero debes inicializar WhatsApp para esta sucursal.',
-      debug: {
-        hasData: !!data,
-        hasQR: !!(data && data.qrCode),
-        status: data ? data.status : 'no data',
-        expectedStatus: 'qr_ready'
-      }
-    });
-  }
-});
-
-// Obtener estado de WhatsApp de una sucursal
-app.get('/api/branch-whatsapp/branch/:branchId/status', auth, (req, res) => {
-  const { branchId } = req.params;
-  
-  console.log(`📊 Solicitando estado para sucursal ${branchId}`);
-  
-  const data = whatsappData[branchId];
-  
-  if (data && data.phoneNumber) {
     res.json({
-      status: data.status,
-      is_connected: data.status === 'connected',
-      phone_number: data.phoneNumber,
-      lastReadyAt: data.lastReadyAt,
-      error: data.error || null
+      success: true,
+      message: 'WhatsApp iniciado correctamente',
+      data: {
+        status: whatsappData[branchId].status,
+        branchId: branchId
+      }
     });
-  } else {
-    res.json({
-      status: 'disconnected',
-      is_connected: false,
-      phone_number: null,
-      lastReadyAt: null,
-      error: null
+    
+  } catch (error) {
+    console.error(`Error conectando WhatsApp:`, error);
+    res.status(500).json({ 
+      error: 'Error conectando WhatsApp',
+      details: error.message 
     });
   }
 });
 
 // Desconectar WhatsApp
-app.post('/api/branch-whatsapp/branch/:branchId/disconnect', auth, (req, res) => {
+app.post('/api/whatsapp/branch/:branchId/disconnect', auth, async (req, res) => {
   const { branchId } = req.params;
   
-  console.log(`🔌 Desconectando WhatsApp REAL para sucursal ${branchId}`);
-  
-  const data = whatsappData[branchId];
-  if (data && data.client) {
-    try {
-      data.client.destroy();
-    } catch (error) {
-      console.log(`⚠️ Error destruyendo cliente:`, error.message);
-    }
-    data.client = null;
-    data.status = 'disconnected';
-    data.qrCode = null;
-    data.error = null;
-  }
-  
-  res.json({ message: 'WhatsApp REAL desconectado exitosamente de la sucursal' });
-});
-
-// Desvincular WhatsApp - Eliminar completamente los datos de sesión
-app.post('/api/branch-whatsapp/branch/:branchId/logout', auth, (req, res) => {
-  const { branchId } = req.params;
-  
-  console.log(`🚪 ===== DESVINCULANDO SESIÓN COMPLETA =====`);
-  console.log(`📍 Sucursal: ${branchId}`);
-  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-  
-  const data = whatsappData[branchId];
-  if (data && data.client) {
-    console.log(`🔌 Destruyendo cliente de WhatsApp...`);
-    try {
-      data.client.destroy();
-    } catch (error) {
-      console.log(`⚠️ Error destruyendo cliente:`, error.message);
-    }
-  }
-  
-  // Eliminar completamente todos los datos de sesión
-  console.log(`🗑️ Eliminando todos los datos de sesión...`);
-  whatsappData[branchId] = { 
-    phoneNumber: null, 
-    qrCode: null, 
-    status: 'disconnected',
-    client: null,
-    lastReadyAt: null,
-    error: null,
-    defaultMessages: {
-      welcome: '¡Hola! Bienvenido a FastWings. ¿En qué puedo ayudarte?',
-      menu: 'Aquí tienes nuestro menú: [MENÚ]',
-      order: 'Perfecto, tu pedido ha sido recibido. Te contactaremos pronto.',
-      goodbye: '¡Gracias por preferir FastWings! Que tengas un excelente día.',
-      aiPrompt: 'Eres un asistente virtual de FastWings, un restaurante de comida rápida. Debes ser amigable, profesional y ayudar a los clientes con sus pedidos, consultas sobre el menú y cualquier otra pregunta relacionada con nuestros servicios.'
-    }
-  };
-  
-  console.log(`✅ Sesión completamente desvinculada para sucursal ${branchId}`);
-  console.log(`🚪 ==============================================`);
-  
-  res.json({ 
-    message: 'Sesión de WhatsApp completamente desvinculada. Se requerirá nuevo QR para reconectar.',
-    status: 'disconnected'
-  });
-});
-
-// Health check de WhatsApp
-app.get('/api/branch-whatsapp/health', auth, (req, res) => {
-  const healthData = [
-    {
-      branchId: 'branch-1',
-      name: 'Sucursal Principal',
-      status: whatsappData['branch-1'].status,
-      is_connected: whatsappData['branch-1'].status === 'connected',
-      lastReadyAt: whatsappData['branch-1'].lastReadyAt,
-      hasQR: whatsappData['branch-1'].status === 'qr_ready',
-      error: whatsappData['branch-1'].error
-    },
-    {
-      branchId: 'branch-2',
-      name: 'Sucursal Norte',
-      status: whatsappData['branch-2'].status,
-      is_connected: whatsappData['branch-2'].status === 'connected',
-      lastReadyAt: whatsappData['branch-2'].lastReadyAt,
-      hasQR: whatsappData['branch-2'].status === 'qr_ready',
-      error: whatsappData['branch-2'].error
-    }
-  ];
-  
-  res.json({
-    totalBranches: 2,
-    connectedBranches: healthData.filter(b => b.is_connected).length,
-    branches: healthData
-  });
-});
-
-// Obtener mensajes por defecto de una sucursal
-app.get('/api/branch-whatsapp/branch/:branchId/messages', auth, (req, res) => {
-  const { branchId } = req.params;
-  
-  console.log(`📝 Solicitando mensajes por defecto para sucursal ${branchId}`);
-  
-  const data = whatsappData[branchId];
-  if (data) {
-    res.json({
-      success: true,
-      messages: data.defaultMessages
-    });
-  } else {
-    res.status(404).json({ error: 'Sucursal no encontrada' });
-  }
-});
-
-// Actualizar mensajes por defecto de una sucursal
-app.post('/api/branch-whatsapp/branch/:branchId/messages', auth, (req, res) => {
-  const { branchId } = req.params;
-  const { messages } = req.body;
-  
-  console.log(`📝 Actualizando mensajes por defecto para sucursal ${branchId}`);
-  
-  const data = whatsappData[branchId];
-  if (data) {
-    data.defaultMessages = { ...data.defaultMessages, ...messages };
-    res.json({
-      success: true,
-      message: 'Mensajes por defecto actualizados exitosamente',
-      messages: data.defaultMessages
-    });
-  } else {
-    res.status(404).json({ error: 'Sucursal no encontrada' });
-  }
-});
-
-// Probar conexión de IA
-app.get('/api/branch-whatsapp/ai-status', auth, async (req, res) => {
-  console.log('🔍 ===== VERIFICANDO ESTADO DE IA =====');
+  console.log(`Desconectando WhatsApp para sucursal ${branchId}`);
   
   try {
-    res.json({
-      success: true,
-      aiStatus: 'connected',
-      testResponse: '¡Hola! Soy el asistente virtual de FastWings. ¿En qué puedo ayudarte?',
-      error: null
-    });
+    await whatsappManager.disconnect(branchId);
     
-    console.log('✅ Estado de IA enviado al frontend');
-  } catch (error) {
-    console.error('❌ Error verificando estado de IA:', error);
-    res.status(500).json({
-      success: false,
-      aiStatus: 'error',
-      error: error.message
-    });
-  }
-});
-
-// Forzar inicialización inmediata
-app.post('/api/branch-whatsapp/branch/:branchId/force-init', auth, (req, res) => {
-  const { branchId } = req.params;
-  const { phoneNumber } = req.body;
-  
-  console.log(`⚡ ===== FORZANDO INICIALIZACIÓN REAL =====`);
-  console.log(`📍 Sucursal: ${branchId}`);
-  console.log(`📱 Número: ${phoneNumber}`);
-  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-  
-  try {
-    // Destruir cliente existente si hay
-    if (whatsappData[branchId] && whatsappData[branchId].client) {
-      console.log(`🔄 Destruyendo cliente existente...`);
-      try {
-        whatsappData[branchId].client.destroy();
-      } catch (destroyError) {
-        console.log(`⚠️ Error destruyendo cliente anterior:`, destroyError.message);
-      }
-    }
-    
-    // Crear cliente de WhatsApp real
-    console.log(`🔧 Creando cliente real...`);
-    const client = createWhatsAppClient(branchId);
-    whatsappData[branchId].client = client;
-    whatsappData[branchId].phoneNumber = phoneNumber;
-    whatsappData[branchId].status = 'initializing';
+    // Actualizar datos locales
+    whatsappData[branchId].status = 'disconnected';
     whatsappData[branchId].qrCode = null;
-    whatsappData[branchId].error = null;
+    whatsappData[branchId].phoneNumber = null;
     
-    console.log(`📊 Estado actualizado a: initializing`);
-    
-    // Inicializar cliente real
-    console.log(`🚀 Inicializando cliente real...`);
-    client.initialize().catch(error => {
-      console.error(`❌ Error inicializando cliente real para sucursal ${branchId}:`, error);
-      console.error(`📋 Stack trace:`, error.stack);
-      whatsappData[branchId].status = 'error';
-      whatsappData[branchId].error = error.message;
+    res.json({
+      success: true,
+      message: 'WhatsApp desconectado correctamente',
+      data: {
+        status: whatsappData[branchId].status,
+        branchId: branchId
+      }
     });
     
-    console.log(`✅ Cliente WhatsApp REAL creado para sucursal ${branchId}`);
-    console.log(`⚡ ==============================================`);
-    
-    res.json({ 
-      message: 'WhatsApp REAL inicializado exitosamente',
-      status: 'initializing',
-      note: 'El QR REAL aparecerá en unos segundos. Escanea con WhatsApp para vincular dispositivo.'
-    });
   } catch (error) {
-    console.error('❌ Error forzando inicialización REAL:', error);
-    res.status(500).json({ error: 'Error forzando inicialización REAL' });
+    console.error(`Error desconectando WhatsApp:`, error);
+    res.status(500).json({ 
+      error: 'Error desconectando WhatsApp',
+      details: error.message 
+    });
   }
 });
 
-// Debug endpoint para ver estado actual
-app.get('/api/branch-whatsapp/debug', auth, (req, res) => {
-  console.log('🔍 ===== DEBUG ESTADO ACTUAL =====');
+// Forzar logout desde teléfono
+app.post('/api/whatsapp/branch/:branchId/force-phone-logout', auth, async (req, res) => {
+  const { branchId } = req.params;
   
-  const debugData = {
-    whatsappData: whatsappData,
-    timestamp: new Date().toISOString(),
-    branches: Object.keys(whatsappData)
-  };
+  console.log(`Forzando logout desde teléfono para sucursal ${branchId}`);
   
-  console.log('📊 Estado actual:', debugData);
+  try {
+    // Forzar logout desde teléfono
+    await whatsappManager.forcePhoneLogout(branchId);
+    
+    // Actualizar datos locales
+    whatsappData[branchId].status = 'disconnected';
+    
+    console.log(`Logout forzado completado para sucursal ${branchId}`);
+    
+    res.json({
+      success: true,
+      message: 'Logout forzado completado. Ahora puedes desvincular desde tu teléfono y crear una nueva sesión.',
+      data: {
+        status: whatsappData[branchId].status,
+        branchId: branchId
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error forzando logout:`, error);
+    res.status(500).json({ 
+      error: 'Error forzando logout',
+      details: error.message 
+    });
+  }
+});
+
+// Forzar nueva sesión de WhatsApp
+app.post('/api/whatsapp/branch/:branchId/force-new-session', auth, async (req, res) => {
+  const { branchId } = req.params;
+  
+  console.log(`Forzando nueva sesión para sucursal ${branchId}`);
+  
+  try {
+    // Forzar nueva sesión
+    await whatsappManager.forceNewSession(branchId);
+    
+    // Actualizar datos locales
+    whatsappData[branchId].status = 'connecting';
+    whatsappData[branchId].lastReadyAt = new Date().toISOString();
+    
+    console.log(`Nueva sesión creada para sucursal ${branchId}`);
+    
+    res.json({
+      success: true,
+      message: 'Nueva sesión iniciada correctamente',
+      data: {
+        status: whatsappData[branchId].status,
+        branchId: branchId
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error forzando nueva sesión:`, error);
+    res.status(500).json({ 
+      error: 'Error forzando nueva sesión',
+      details: error.message 
+    });
+  }
+});
+
+// Regenerar QR para una sucursal
+app.post('/api/whatsapp/branch/:branchId/regenerate-qr', auth, async (req, res) => {
+  const { branchId } = req.params;
+  
+  console.log(`Regenerando QR para sucursal ${branchId}`);
+  
+  try {
+    // Desconectar cliente actual si existe
+    await whatsappManager.disconnect(branchId);
+    
+    // Crear nuevo cliente (esto generará un nuevo QR)
+    await whatsappManager.createClient(branchId);
+    
+    // Actualizar datos locales
+    whatsappData[branchId].status = 'connecting';
+    whatsappData[branchId].lastReadyAt = new Date().toISOString();
+    
+    console.log(`QR regenerado para sucursal ${branchId}`);
+    
+    res.json({
+      success: true,
+      message: 'QR regenerado correctamente',
+      data: {
+        status: whatsappData[branchId].status,
+        branchId: branchId
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error regenerando QR:`, error);
+    res.status(500).json({ 
+      error: 'Error regenerando QR',
+      details: error.message 
+    });
+  }
+});
+
+// Enviar mensaje de prueba
+app.post('/api/whatsapp/branch/:branchId/send-message', auth, async (req, res) => {
+  const { branchId } = req.params;
+  const { to, message } = req.body;
+  
+  console.log(`Enviando mensaje de prueba desde sucursal ${branchId} a ${to}`);
+  
+  try {
+    const success = await whatsappManager.sendMessage(branchId, to, message);
+    
+    if (success) {
+      res.json({
+        success: true,
+        message: 'Mensaje enviado correctamente',
+        data: { to, message }
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'No se pudo enviar el mensaje. Verifica que WhatsApp esté conectado.'
+      });
+    }
+    
+  } catch (error) {
+    console.error(`Error enviando mensaje:`, error);
+    res.status(500).json({ 
+      error: 'Error enviando mensaje',
+      details: error.message 
+    });
+  }
+});
+
+// Regenerar QR
+app.post('/api/whatsapp/branch/:branchId/regenerate-qr', auth, (req, res) => {
+  const { branchId } = req.params;
+  
+  console.log(`Regenerando QR para sucursal ${branchId}`);
+  
+  try {
+    // Generar nuevo QR
+    const qrCode = Buffer.from(`QR_NUEVO_${Date.now()}`).toString('base64');
+    whatsappData[branchId].qrCode = qrCode;
+    whatsappData[branchId].status = 'qr_ready';
+    
+    res.json({
+      success: true,
+      message: 'QR regenerado correctamente',
+      data: {
+        status: whatsappData[branchId].status,
+        qr_code: qrCode,
+        branchId: branchId
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error regenerando QR:`, error);
+    res.status(500).json({ 
+      error: 'Error regenerando QR',
+      details: error.message 
+    });
+  }
+});
+
+// Obtener QR actual
+app.get('/api/whatsapp/branch/:branchId/qr', auth, (req, res) => {
+  const { branchId } = req.params;
+  
+  const qrCode = whatsappManager.getQRCode(branchId);
+  const status = whatsappManager.getStatus(branchId);
+  
+  if (!qrCode) {
+    return res.status(404).json({ error: 'QR no disponible' });
+  }
   
   res.json({
     success: true,
-    debug: debugData
+    data: {
+      qr_code: qrCode,
+      status: status,
+      branchId: branchId
+    }
   });
 });
 
-// Obtener usuarios
-app.get('/api/admin/users', auth, (req, res) => {
-  res.json({ users: [USER] });
+// Enviar mensaje de prueba
+app.post('/api/whatsapp/branch/:branchId/send-message', auth, async (req, res) => {
+  const { branchId } = req.params;
+  const { to, message } = req.body;
+  
+  console.log(`Enviando mensaje de prueba desde sucursal ${branchId} a ${to}`);
+  
+  try {
+    const success = await whatsappManager.sendMessage(branchId, to, message);
+    
+    if (success) {
+      res.json({
+        success: true,
+        message: 'Mensaje enviado correctamente',
+        data: { to, message }
+      });
+    } else {
+      res.status(400).json({
+        error: 'No se pudo enviar el mensaje',
+        details: 'Cliente no conectado o número inválido'
+      });
+    }
+  } catch (error) {
+    console.error(`Error enviando mensaje:`, error);
+    res.status(500).json({ 
+      error: 'Error enviando mensaje',
+      details: error.message 
+    });
+  }
 });
 
-// Obtener pedidos
-app.get('/api/orders', auth, (req, res) => {
-  res.json({ orders: [] });
+// Desvincular WhatsApp completamente
+app.post('/api/whatsapp/branch/:branchId/logout', auth, async (req, res) => {
+  const { branchId } = req.params;
+  
+  console.log(`Desvinculando WhatsApp para sucursal ${branchId}`);
+  
+  try {
+    await whatsappManager.logout(branchId);
+    
+    // Actualizar datos locales
+    whatsappData[branchId].status = 'disconnected';
+    whatsappData[branchId].qrCode = null;
+    whatsappData[branchId].phoneNumber = null;
+    whatsappData[branchId].lastReadyAt = null;
+    
+    res.json({
+      success: true,
+      message: 'WhatsApp desvinculado correctamente',
+      data: {
+        status: whatsappData[branchId].status,
+        branchId: branchId
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error desvinculando WhatsApp:`, error);
+    res.status(500).json({ 
+      error: 'Error desvinculando WhatsApp',
+      details: error.message 
+    });
+  }
 });
 
-// Estadísticas de facturación
-app.get('/api/billing/stats', auth, (req, res) => {
+// Obtener configuración de teléfonos de una sucursal
+app.get('/api/whatsapp/branch/:branchId/phones', auth, (req, res) => {
+  const { branchId } = req.params;
+  
+  const branchData = whatsappData[branchId];
+  if (!branchData) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
   res.json({
-    totalInvoices: 0,
-    totalBillingAmount: 0,
-    pendingInvoices: 0,
-    paidInvoices: 0
+    success: true,
+    data: {
+      orderPhone: branchData.orderPhone || '',
+      complaintPhone: branchData.complaintPhone || '',
+      branchId: branchId
+    }
   });
 });
 
-const PORT = 4000;
+// Actualizar configuración de teléfonos
+app.put('/api/whatsapp/branch/:branchId/phones', auth, (req, res) => {
+  const { branchId } = req.params;
+  const { orderPhone, complaintPhone } = req.body;
+  
+  console.log(`Actualizando teléfonos para sucursal ${branchId}:`, { orderPhone, complaintPhone });
+  
+  const branchData = whatsappData[branchId];
+  if (!branchData) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
+  try {
+    // Validar formato de teléfonos
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+    
+    if (orderPhone && !phoneRegex.test(orderPhone.replace(/\s/g, ''))) {
+      return res.status(400).json({ error: 'Formato de teléfono de pedidos inválido' });
+    }
+    
+    if (complaintPhone && !phoneRegex.test(complaintPhone.replace(/\s/g, ''))) {
+      return res.status(400).json({ error: 'Formato de teléfono de reclamaciones inválido' });
+    }
+    
+    // Actualizar teléfonos
+    if (orderPhone !== undefined) {
+      branchData.orderPhone = orderPhone;
+    }
+    if (complaintPhone !== undefined) {
+      branchData.complaintPhone = complaintPhone;
+    }
+    
+    console.log(`Teléfonos actualizados para sucursal ${branchId}`);
+    
+    res.json({
+      success: true,
+      message: 'Teléfonos actualizados correctamente',
+      data: {
+        orderPhone: branchData.orderPhone,
+        complaintPhone: branchData.complaintPhone,
+        branchId: branchId
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error actualizando teléfonos:`, error);
+    res.status(500).json({ 
+      error: 'Error actualizando teléfonos',
+      details: error.message 
+    });
+  }
+});
+
+// Endpoint para configurar prompt de IA para una sucursal
+app.post('/api/branch/:branchId/ai-prompt', auth, (req, res) => {
+  const { branchId } = req.params;
+  const { prompt } = req.body;
+  
+  console.log(`Configurando prompt de IA para sucursal ${branchId}`);
+  
+  try {
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt no proporcionado' });
+    }
+    
+    // Configurar prompt en AI Manager
+    aiManager.setAIPrompt(branchId, prompt);
+    
+    // Guardar en datos locales
+    if (!whatsappData[branchId]) {
+      whatsappData[branchId] = {
+        branchName: branchId === 'branch-1' ? 'Sucursal Principal' : 'Sucursal Norte',
+        phoneNumber: null,
+        qrCode: null,
+        status: 'disconnected',
+        client: null,
+        lastReadyAt: null,
+        orderPhone: '+573001234567',
+        complaintPhone: '+573001234568',
+        defaultMessages: {},
+        conversationState: {},
+        menuPdf: null,
+        menuContent: null,
+        menuLastUpdated: null,
+        aiPrompt: null
+      };
+    }
+    
+    whatsappData[branchId].aiPrompt = prompt;
+    
+    console.log(`Prompt de IA configurado para sucursal ${branchId}`);
+    
+    res.json({
+      success: true,
+      message: 'Prompt de IA configurado correctamente',
+      data: {
+        branchId: branchId,
+        prompt: prompt
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error configurando prompt de IA:`, error);
+    res.status(500).json({ 
+      error: 'Error configurando prompt de IA',
+      details: error.message 
+    });
+  }
+});
+
+// Endpoint para obtener prompt de IA de una sucursal
+app.get('/api/branch/:branchId/ai-prompt', auth, (req, res) => {
+  const { branchId } = req.params;
+  
+  const branchData = whatsappData[branchId];
+  if (!branchData) {
+    return res.status(404).json({ error: 'Sucursal no encontrada' });
+  }
+  
+  res.json({
+    success: true,
+    data: {
+      branchId: branchId,
+      prompt: branchData.aiPrompt || aiManager.getPrompt(branchId)
+    }
+  });
+});
+
+// Endpoint para configurar Hugging Face
+app.post('/api/ai/configure-huggingface', auth, (req, res) => {
+  const { apiKey, modelName, enabled } = req.body;
+  
+  console.log(`Configurando Hugging Face:`, { apiKey: apiKey ? '***' : 'no key', modelName, enabled });
+  
+  try {
+    // Actualizar configuración en AI Manager
+    if (apiKey) {
+      aiManager.hf = new (require('@huggingface/inference').HfInference)(apiKey);
+    }
+    
+    if (modelName) {
+      aiManager.modelName = modelName;
+    }
+    
+    if (enabled !== undefined) {
+      aiManager.useHuggingFace = enabled;
+    }
+    
+    console.log(`Hugging Face configurado:`, {
+      hasApiKey: !!aiManager.hf,
+      modelName: aiManager.modelName,
+      enabled: aiManager.useHuggingFace
+    });
+    
+    res.json({
+      success: true,
+      message: 'Hugging Face configurado correctamente',
+      data: {
+        hasApiKey: !!aiManager.hf,
+        modelName: aiManager.modelName,
+        enabled: aiManager.useHuggingFace
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error configurando Hugging Face:`, error);
+    res.status(500).json({ 
+      error: 'Error configurando Hugging Face',
+      details: error.message 
+    });
+  }
+});
+
+// Endpoint para probar respuesta de IA
+app.post('/api/ai/test-response', auth, async (req, res) => {
+  const { message, branchId } = req.body;
+  
+  try {
+    const response = await aiManager.generateResponse(branchId, message, 'test-client');
+    
+    res.json({
+      success: true,
+      response: response,
+      data: {
+        message: message,
+        branchId: branchId,
+        aiType: aiManager.useHuggingFace ? 'Hugging Face' : 'Simulación'
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Error probando IA:`, error);
+    res.status(500).json({ 
+      error: 'Error probando IA',
+      details: error.message 
+    });
+  }
+});
+app.get('/api/ai/configuration', auth, (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      hasApiKey: !!aiManager.hf,
+      modelName: aiManager.modelName,
+      enabled: aiManager.useHuggingFace,
+      availableModels: [
+        'microsoft/DialoGPT-medium',
+        'microsoft/DialoGPT-large',
+        'gpt2',
+        'distilgpt2'
+      ]
+    }
+  });
+});
+const PORT = process.env.PORT || 4000;
+
 app.listen(PORT, () => {
-  console.log(`🚀 Simple Test Server ejecutándose en puerto ${PORT}`);
-  console.log(`📱 Frontend: http://localhost:${PORT}/frontend-admin/super.html`);
-  console.log(`🔐 Login: admin@fastwings.com / admin123`);
-  console.log(`🔑 JWT Secret: test-secret-key`);
-  console.log(`📊 Estado inicial de sucursales:`);
-  console.log(`   - branch-1: ${whatsappData['branch-1'].status}`);
-  console.log(`   - branch-2: ${whatsappData['branch-2'].status}`);
-  console.log(`🔧 QR REAL de WhatsApp Web para vinculación de dispositivos`);
+  console.log(`Servidor FastWings ejecutándose en puerto ${PORT}`);
+  console.log(`Directorio de uploads: ${path.join(__dirname, 'uploads')}`);
 });

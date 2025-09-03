@@ -142,29 +142,29 @@
                         <i class="fas fa-wings me-2"></i>FastWings
                     </h4>
                     <nav class="nav flex-column">
-                        <a class="nav-link active" href="#" data-section="dashboard">
+                        <a class="nav-link active" href="super.html">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
-                        <a class="nav-link" href="#" data-section="branches">
-                            <i class="fas fa-store me-2"></i>Sucursales
+                        <a class="nav-link" href="menus.html">
+                            <i class="fas fa-utensils me-2"></i>Gestión de Menús
                         </a>
-                        <a class="nav-link" href="#" data-section="users">
-                            <i class="fas fa-users me-2"></i>Usuarios
+                        <a class="nav-link" href="whatsapp.html">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp
                         </a>
-                        <a class="nav-link" href="#" data-section="orders">
+                        <a class="nav-link" href="orders.html">
                             <i class="fas fa-shopping-cart me-2"></i>Pedidos
                         </a>
-                        <a class="nav-link" href="#" data-section="billing">
-                            <i class="fas fa-file-invoice me-2"></i>Facturación
+                        <a class="nav-link" href="users.html">
+                            <i class="fas fa-users me-2"></i>Usuarios
                         </a>
-                        <a class="nav-link" href="#" data-section="whatsapp">
-                            <i class="fas fa-whatsapp me-2"></i>WhatsApp
+                        <a class="nav-link" href="billing.html">
+                            <i class="fas fa-chart-line me-2"></i>Facturación
                         </a>
-                        <a class="nav-link" href="#" data-section="settings">
+                        <a class="nav-link" href="config.html">
                             <i class="fas fa-cog me-2"></i>Configuración
                         </a>
-                        <hr class="text-white-50 my-3">
-                        <a class="nav-link text-danger" href="#" onclick="dashboard.logout()">
+                        <hr class="text-white">
+                        <a class="nav-link" href="#" onclick="logout()">
                             <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
                         </a>
                     </nav>
@@ -197,9 +197,9 @@
                                         <i class="fas fa-store fa-2x text-primary mb-2"></i>
                                         <h4 id="totalBranches">0</h4>
                                         <p class="text-muted">Sucursales</p>
-                                    </div>
-                                </div>
-                            </div>
+                                            </div>
+                                            </div>
+                                        </div>
                             <div class="col-md-3 mb-4">
                                 <div class="card">
                                     <div class="card-body text-center">
@@ -215,9 +215,9 @@
                                         <i class="fas fa-shopping-cart fa-2x text-warning mb-2"></i>
                                         <h4 id="totalOrders">0</h4>
                                         <p class="text-muted">Pedidos</p>
-                                    </div>
-                                </div>
-                            </div>
+                                            </div>
+                                            </div>
+                                        </div>
                             <div class="col-md-3 mb-4">
                                 <div class="card">
                                     <div class="card-body text-center">
@@ -227,8 +227,8 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                                            </div>
+                                            </div>
 
                     <!-- Branches Section -->
                     <div id="branchesSection" style="display: none;">
@@ -237,19 +237,19 @@
                                 <h5 class="mb-0">
                                     <i class="fas fa-store me-2"></i>Gestión de Sucursales
                                 </h5>
-                            </div>
-                            <div class="card-body">
+                                        </div>
+                                    <div class="card-body">
                                 <div id="branchesList">
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Cargando...</span>
-                                        </div>
+                                            </div>
                                         <p class="mt-2">Cargando sucursales...</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
                     <!-- Users Section -->
                     <div id="usersSection" style="display: none;">
@@ -264,11 +264,11 @@
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Cargando...</span>
-                                        </div>
-                                        <p class="mt-2">Cargando usuarios...</p>
-                                    </div>
                                 </div>
+                                        <p class="mt-2">Cargando usuarios...</p>
                             </div>
+                        </div>
+                    </div>
                         </div>
                     </div>
 
@@ -285,9 +285,9 @@
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Cargando...</span>
-                                        </div>
+                                </div>
                                         <p class="mt-2">Cargando pedidos...</p>
-                                    </div>
+                            </div>
                                 </div>
                             </div>
                         </div>
@@ -295,14 +295,14 @@
 
                     <!-- Billing Section -->
                     <div id="billingSection" style="display: none;">
-                        <div class="card">
-                            <div class="card-header">
+                                <div class="card">
+                                    <div class="card-header">
                                 <h5 class="mb-0">
                                     <i class="fas fa-file-invoice me-2"></i>Gestión de Facturación
                                 </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="billingStats">
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="billingStats">
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Cargando...</span>
@@ -327,13 +327,13 @@
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Cargando...</span>
-                                        </div>
-                                        <p class="mt-2">Cargando estado de WhatsApp...</p>
-                                    </div>
-                                </div>
                             </div>
-                        </div>
+                                        <p class="mt-2">Cargando estado de WhatsApp...</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
                     <!-- Settings Section -->
                     <div id="settingsSection" style="display: none;">
@@ -342,17 +342,17 @@
                                 <h5 class="mb-0">
                                     <i class="fas fa-cog me-2"></i>Configuración del Sistema
                                 </h5>
-                            </div>
+                </div>
                             <div class="card-body">
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
                                     Configuración del sistema en desarrollo.
-                                </div>
-                            </div>
+                        </div>
+                        </div>
+                        </div>
+                        </div>
                         </div>
                     </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -386,7 +386,7 @@
                 }
 
                 const config = {
-                    headers: {
+                        headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
                         ...options.headers
@@ -490,28 +490,28 @@
 
             async loadSectionData(sectionName) {
                 try {
-                    switch (sectionName) {
-                        case 'dashboard':
-                            await this.loadDashboard();
-                            break;
-                        case 'branches':
-                            await this.loadBranches();
-                            break;
-                        case 'users':
-                            await this.loadUsers();
-                            break;
-                        case 'orders':
-                            await this.loadOrders();
-                            break;
-                        case 'billing':
+                switch (sectionName) {
+                    case 'dashboard':
+                        await this.loadDashboard();
+                        break;
+                    case 'branches':
+                        await this.loadBranches();
+                        break;
+                    case 'users':
+                        await this.loadUsers();
+                        break;
+                    case 'orders':
+                        await this.loadOrders();
+                        break;
+                    case 'billing':
                             await this.loadBilling();
-                            break;
-                        case 'whatsapp':
+                        break;
+                    case 'whatsapp':
                             await this.loadWhatsApp();
                             break;
                         case 'settings':
                             this.loadSettings();
-                            break;
+                        break;
                     }
                 } catch (error) {
                     console.error(`Error cargando ${sectionName}:`, error);
@@ -799,7 +799,7 @@
                                         <div class="mt-2">
                                             <button class="btn btn-outline-primary btn-sm" onclick="dashboard.refreshBranchQR('${branch.id}')">
                                                 <i class="fas fa-sync-alt me-1"></i>Actualizar QR
-                                            </button>
+                            </button>
                                         </div>
                                     ` : ''}
                                 </div>
@@ -828,7 +828,7 @@
                                         onclick="console.log('🖱️ Clic en Conectar WhatsApp para', '${branch.id}'); dashboard.initializeBranchWhatsApp('${branch.id}')"
                                         ${isConnected || isQRReady || isInitializing ? 'disabled' : ''}>
                                     <i class="fas fa-plug me-2"></i>Conectar WhatsApp
-                                </button>
+                            </button>
                                 <button class="btn btn-whatsapp-disconnect"
                                         onclick="dashboard.disconnectBranchWhatsApp('${branch.id}')"
                                         ${!isConnected ? 'disabled' : ''}>
@@ -973,7 +973,7 @@
                 if (!container) return;
 
                 if (!branches || branches.length === 0) {
-                    container.innerHTML = `
+                container.innerHTML = `
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> No hay sucursales configuradas.
                         </div>
@@ -996,20 +996,20 @@
                                     <i class="fas fa-store"></i> ${branch.name}
                                 </h6>
                                 ${statusBadge}
-                            </div>
+                        </div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <p><strong>Número:</strong> ${phoneNumber}</p>
                                         <p><strong>Última conexión:</strong> ${lastConnection}</p>
-                                    </div>
+                    </div>
                                     <div class="col-md-6">
                                         ${this.generateWhatsAppButtons(branch)}
-                                    </div>
-                                </div>
-                            </div>
                         </div>
-                    `;
+                                </div>
+                        </div>
+                    </div>
+                `;
                 });
 
                 container.innerHTML = html;

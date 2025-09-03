@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastWings - WhatsApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: #2c3e50;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: all 0.2s ease;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background: #34495e;
+        }
+        .sidebar .nav-link.active {
+            background: #3498db;
+            color: white;
+        }
+        .main-content {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .card-header {
+            background: #f8f9fa;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .btn-whatsapp-connect {
+            background: #25d366;
+            border: none;
+            color: white;
+        }
+        .btn-whatsapp-connect:hover {
+            background: #128c7e;
+            color: white;
+        }
+        .btn-whatsapp-disconnect {
+            background: #e74c3c;
+            border: none;
+            color: white;
+        }
+        .btn-whatsapp-disconnect:hover {
+            background: #c0392b;
+            color: white;
+        }
+        .qr-container {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+        }
+        .status-connected {
+            color: #25d366;
+        }
+        .status-disconnected {
+            color: #e74c3c;
+        }
+        .status-connecting {
+            color: #f39c12;
+        }
+        .qr-image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0;
+        }
+        .qr-image {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        .qr-image:hover {
+            transform: scale(1.05);
+        }
+        .form-control-sm {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .phone-config {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-wings me-2"></i>FastWings
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="super.html">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a class="nav-link" href="menus.html">
+                            <i class="fas fa-utensils me-2"></i>Gestión de Menús
+                        </a>
+                        <a class="nav-link active" href="whatsapp.html">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp
+                        </a>
+                        <a class="nav-link" href="orders.html">
+                            <i class="fas fa-shopping-cart me-2"></i>Pedidos
+                        </a>
+                        <a class="nav-link" href="users.html">
+                            <i class="fas fa-users me-2"></i>Usuarios
+                        </a>
+                        <a class="nav-link" href="billing.html">
+                            <i class="fas fa-chart-line me-2"></i>Facturación
+                        </a>
+                        <a class="nav-link" href="config.html">
+                            <i class="fas fa-cog me-2"></i>Configuración
+                        </a>
+                        <hr class="text-white">
+                        <a class="nav-link" href="#" onclick="logout()">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>
+                            <i class="fab fa-whatsapp me-2"></i>Gestión de WhatsApp
+                        </h2>
+                        <div class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>
+                            <span id="currentDate"></span>
+                        </div>
+                    </div>
+
+                    <!-- Alertas -->
+                    <div id="alertContainer"></div>
+
+                    <!-- Sucursales WhatsApp -->
+                    <div class="row" id="branchesContainer">
+                        <!-- Las sucursales se cargarán dinámicamente -->
+                    </div>
+                    
+                    <!-- Configuración de IA -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-robot me-2"></i>Configuración de IA
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Respuestas Automáticas</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mensaje de Bienvenida</label>
+                                        <textarea class="form-control" id="welcomeMessage" rows="3" placeholder="¡Hola! Bienvenido a FastWings...">¡Hola! Bienvenido a FastWings 🍔
+
+¿En qué puedo ayudarte hoy?
+• Ver nuestro menú
+• Hacer un pedido
+• Consultar precios
+• Horarios de atención</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Respuesta sobre Menú</label>
+                                        <textarea class="form-control" id="menuMessage" rows="3" placeholder="Aquí tienes nuestro menú...">🍽️ *NUESTRO MENÚ*
+
+Tenemos una gran variedad de opciones:
+• Hamburguesas desde $8.99
+• Pizzas desde $14.99
+• Bebidas desde $2.99
+• Acompañamientos desde $3.99
+
+¿Te gustaría ver el menú completo en PDF?</textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Configuración Avanzada</h6>
+                                                                         <div class="mb-3">
+                                         <label class="form-label">Palabras Clave</label>
+                                         <input type="text" class="form-control" id="keywords" placeholder="hola, menú, pedido, precio" value="hola, menú, pedido, precio, hamburguesa, pizza">
+                                         <small class="text-muted">Separadas por comas</small>
+                                     </div>
+                                     <div class="mb-3">
+                                         <label class="form-label">Prompt de IA Personalizado</label>
+                                         <textarea class="form-control" id="aiPrompt" rows="4" placeholder="Configura cómo debe comportarse la IA...">Eres un asistente virtual amigable de FastWings, un restaurante de comida rápida. 
+
+Tu objetivo es ayudar a los clientes con sus consultas sobre el menú, precios, pedidos y cualquier otra pregunta relacionada con nuestros servicios.
+
+Debes ser:
+- Amigable y profesional
+- Útil y preciso en tus respuestas
+- Capaz de sugerir productos del menú
+- Ayudar con el proceso de pedidos
+- Responder preguntas sobre precios y disponibilidad
+
+Responde de manera natural y conversacional, como si fueras un empleado amigable del restaurante.</textarea>
+                                         <small class="text-muted">Define el comportamiento y personalidad de la IA</small>
+                                     </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="autoReply" checked>
+                                            <label class="form-check-label" for="autoReply">
+                                                Respuestas automáticas activadas
+                                            </label>
+                                        </div>
+                                    </div>
+                                                                         <div class="mb-3">
+                                         <button class="btn btn-primary" onclick="whatsappManager.saveAIConfig()">
+                                             <i class="fas fa-save me-1"></i>Guardar Configuración
+                                         </button>
+                                     </div>
+                                     
+                                     <!-- Configuración de Hugging Face -->
+                                     <div class="card mt-3">
+                                         <div class="card-header">
+                                             <h6 class="mb-0">
+                                                 <i class="fas fa-brain me-2"></i>Configuración de Hugging Face
+                                             </h6>
+                                         </div>
+                                         <div class="card-body">
+                                             <div class="mb-3">
+                                                 <div class="form-check">
+                                                     <input class="form-check-input" type="checkbox" id="huggingFaceEnabled" checked>
+                                                     <label class="form-check-label" for="huggingFaceEnabled">
+                                                         Activar Hugging Face (IA más inteligente)
+                                                     </label>
+                                                 </div>
+                                             </div>
+                                             <div class="mb-3">
+                                                 <label class="form-label">API Key de Hugging Face (opcional)</label>
+                                                 <input type="password" class="form-control" id="huggingFaceApiKey" 
+                                                        placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                                                 <small class="text-muted">
+                                                     Sin API key funciona con límites. 
+                                                     <a href="https://huggingface.co/settings/tokens" target="_blank">Obtener gratis</a>
+                                                 </small>
+                                             </div>
+                                             <div class="mb-3">
+                                                 <label class="form-label">Modelo de IA</label>
+                                                 <select class="form-control" id="huggingFaceModel">
+                                                     <option value="microsoft/DialoGPT-medium">DialoGPT Medium (Recomendado)</option>
+                                                     <option value="microsoft/DialoGPT-large">DialoGPT Large (Más potente)</option>
+                                                     <option value="gpt2">GPT-2 (Básico)</option>
+                                                     <option value="distilgpt2">DistilGPT-2 (Rápido)</option>
+                                                 </select>
+                                             </div>
+                                             <div class="mb-3">
+                                                 <button class="btn btn-success" onclick="whatsappManager.configureHuggingFace()">
+                                                     <i class="fas fa-cog me-1"></i>Configurar Hugging Face
+                                                 </button>
+                                                 <button class="btn btn-info ms-2" onclick="whatsappManager.testHuggingFace()">
+                                                     <i class="fas fa-vial me-1"></i>Probar IA
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class WhatsAppManager {
+            constructor() {
+                this.baseURL = 'http://localhost:4000/api';
+                this.token = localStorage.getItem('token');
+                this.init();
+            }
+
+            init() {
+                if (!this.token) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                this.setCurrentDate();
+                this.loadBranches();
+                this.loadAIConfig();
+                this.loadHuggingFaceConfig();
+                this.loadPhoneNumbers();
+            }
+
+            loadHuggingFaceConfig() {
+                // Cargar configuración guardada
+                const savedConfig = localStorage.getItem('huggingFaceConfig');
+                if (savedConfig) {
+                    const config = JSON.parse(savedConfig);
+                    document.getElementById('huggingFaceApiKey').value = config.apiKey || '';
+                    document.getElementById('huggingFaceModel').value = config.modelName || 'microsoft/DialoGPT-medium';
+                    document.getElementById('huggingFaceEnabled').checked = config.enabled !== false;
+                }
+            }
+
+            setCurrentDate() {
+                const now = new Date();
+                document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            async loadBranches() {
+                try {
+                    const response = await fetch(`${this.baseURL}/whatsapp/status`, {
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('Datos recibidos:', data);
+                    
+                    if (data.branches && Array.isArray(data.branches)) {
+                        this.renderBranches(data.branches);
+                    } else {
+                        throw new Error('Formato de datos inválido');
+                    }
+                } catch (error) {
+                    console.error('Error cargando branches:', error);
+                    this.showAlert('Error cargando estado de WhatsApp: ' + error.message, 'danger');
+                }
+            }
+
+            renderBranches(branches) {
+                const container = document.getElementById('branchesContainer');
+                let html = '';
+
+                console.log('Renderizando branches:', branches);
+                
+                // Guardar datos actuales para uso en otros métodos
+                this.currentBranches = branches;
+
+                branches.forEach(branch => {
+                    const status = branch.whatsapp.status;
+                    const isConnected = branch.whatsapp.is_connected;
+                    
+                    html += `
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-store me-2"></i>${branch.branchName}
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>Estado:</strong>
+                                        <span class="status-${status}">
+                                            <i class="fas fa-circle me-1"></i>
+                                            ${this.getStatusText(status)}
+                                        </span>
+                                    </div>
+                                    
+                                    ${branch.whatsapp.phone_number ? `
+                                        <div class="mb-3">
+                                            <strong>Número:</strong> ${branch.whatsapp.phone_number}
+                                        </div>
+                                    ` : ''}
+                                    
+                                    <!-- Configuración de Teléfonos -->
+                                    <div class="mb-3">
+                                        <h6><i class="fas fa-phone me-1"></i>Configuración de Teléfonos</h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label small">Teléfono para Pedidos</label>
+                                                <input type="tel" class="form-control form-control-sm" 
+                                                       id="orderPhone-${branch.branchId}" 
+                                                       value="${branch.phones?.orderPhone || ''}"
+                                                       placeholder="+573001234567">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small">Teléfono para Reclamaciones</label>
+                                                <input type="tel" class="form-control form-control-sm" 
+                                                       id="complaintPhone-${branch.branchId}" 
+                                                       value="${branch.phones?.complaintPhone || ''}"
+                                                       placeholder="+573001234568">
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-outline-primary btn-sm mt-2" 
+                                                onclick="whatsappManager.savePhoneNumbers('${branch.branchId}')">
+                                            <i class="fas fa-save me-1"></i>Guardar Teléfonos
+                                        </button>
+                                    </div>
+                                    
+                                    ${branch.whatsapp.last_connection ? `
+                                        <div class="mb-3">
+                                            <strong>Última conexión:</strong><br>
+                                            <small class="text-muted">
+                                                ${new Date(branch.whatsapp.last_connection).toLocaleString('es-ES')}
+                                            </small>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    <div class="mb-3">
+                                        ${isConnected ? `
+                                            <button class="btn btn-whatsapp-disconnect btn-sm me-2" onclick="whatsappManager.disconnectWhatsApp('${branch.branchId}')">
+                                                <i class="fas fa-times me-1"></i>Desconectar
+                                            </button>
+                                            <button class="btn btn-whatsapp-disconnect btn-sm" onclick="whatsappManager.logoutWhatsApp('${branch.branchId}')">
+                                                <i class="fas fa-sign-out-alt me-1"></i>Desvincular
+                                            </button>
+                                            <button class="btn btn-success btn-sm ms-2" onclick="whatsappManager.testMessage('${branch.branchId}')">
+                                                <i class="fas fa-paper-plane me-1"></i>Probar Mensaje
+                                            </button>
+                                        ` : `
+                                            <button class="btn btn-whatsapp-connect btn-sm" onclick="whatsappManager.connectWhatsApp('${branch.branchId}')">
+                                                <i class="fas fa-plus me-1"></i>Conectar WhatsApp
+                                            </button>
+                                        `}
+                                    </div>
+                                    
+                                    ${branch.whatsapp.qr_code ? `
+                                        <div class="qr-container">
+                                            <h6><i class="fas fa-qrcode me-1"></i>Escanea el QR para conectar</h6>
+                                            <div class="qr-image-container">
+                                                <img src="data:image/png;base64,${branch.whatsapp.qr_code}" 
+                                                     alt="QR Code" 
+                                                     class="qr-image"
+                                                     style="max-width: 200px; height: auto; border: 2px solid #dee2e6; border-radius: 8px;">
+                                            </div>
+                                            <div class="mt-3">
+                                                <button class="btn btn-outline-primary btn-sm" onclick="whatsappManager.regenerateQR('${branch.branchId}')">
+                                                    <i class="fas fa-sync me-1"></i>Regenerar QR
+                                                </button>
+                                                <button class="btn btn-outline-warning btn-sm ms-2" onclick="whatsappManager.forceNewSession('${branch.branchId}')">
+                                                    <i class="fas fa-redo me-1"></i>Nueva Sesión
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm ms-2" onclick="whatsappManager.forcePhoneLogout('${branch.branchId}')">
+                                                    <i class="fas fa-mobile-alt me-1"></i>Forzar Logout
+                                                </button>
+                                                <button class="btn btn-outline-secondary btn-sm ms-2" onclick="whatsappManager.downloadQR('${branch.branchId}')">
+                                                    <i class="fas fa-download me-1"></i>Descargar QR
+                                                </button>
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Escanea este código con WhatsApp en tu teléfono
+                                            </small>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    <!-- Información adicional -->
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            ID: ${branch.branchId}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
+            getStatusText(status) {
+                const statusMap = {
+                    'disconnected': 'Desconectado',
+                    'connecting': 'Conectando...',
+                    'connected': 'Conectado',
+                    'qr_ready': 'QR Listo',
+                    'auth_failure': 'Error de Autenticación'
+                };
+                return statusMap[status] || status;
+            }
+
+            async connectWhatsApp(branchId) {
+                try {
+                    this.showAlert('Iniciando conexión de WhatsApp...', 'info');
+                    
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/connect`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error conectando WhatsApp');
+                    }
+
+                    this.showAlert('WhatsApp iniciado. Escanea el QR cuando aparezca.', 'success');
+                    this.loadBranches(); // Recargar para mostrar el QR
+                } catch (error) {
+                    this.showAlert('Error conectando WhatsApp: ' + error.message, 'danger');
+                }
+            }
+
+            async disconnectWhatsApp(branchId) {
+                if (!confirm('¿Estás seguro de que quieres desconectar WhatsApp?')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/disconnect`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error desconectando WhatsApp');
+                    }
+
+                    this.showAlert('WhatsApp desconectado exitosamente', 'success');
+                    this.loadBranches();
+                } catch (error) {
+                    this.showAlert('Error desconectando WhatsApp: ' + error.message, 'danger');
+                }
+            }
+
+            async logoutWhatsApp(branchId) {
+                if (!confirm('¿Estás seguro de que quieres desvincular completamente WhatsApp? Esto requerirá un nuevo QR.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error desvinculando WhatsApp');
+                    }
+
+                    this.showAlert('WhatsApp desvinculado exitosamente', 'success');
+                    this.loadBranches();
+                } catch (error) {
+                    this.showAlert('Error desvinculando WhatsApp: ' + error.message, 'danger');
+                }
+            }
+
+            async forcePhoneLogout(branchId) {
+                if (!confirm('¿Estás seguro de que quieres forzar el logout desde el teléfono? Esto desconectará WhatsApp Web y requerirá que desvincules desde tu teléfono.')) {
+                    return;
+                }
+
+                try {
+                    this.showAlert('Forzando logout desde teléfono...', 'info');
+                    
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/force-phone-logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error forzando logout');
+                    }
+
+                    this.showAlert('Logout forzado completado. Ahora desvincula desde tu teléfono y usa "Nueva Sesión".', 'success');
+                    this.loadBranches();
+                } catch (error) {
+                    this.showAlert('Error forzando logout: ' + error.message, 'danger');
+                }
+            }
+
+            async forceNewSession(branchId) {
+                if (!confirm('¿Estás seguro de que quieres forzar una nueva sesión? Esto eliminará la sesión anterior y requerirá un nuevo QR.')) {
+                    return;
+                }
+
+                try {
+                    this.showAlert('Forzando nueva sesión...', 'info');
+                    
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/force-new-session`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error forzando nueva sesión');
+                    }
+
+                    this.showAlert('Nueva sesión iniciada. Escanea el nuevo QR cuando aparezca.', 'success');
+                    this.loadBranches();
+                } catch (error) {
+                    this.showAlert('Error forzando nueva sesión: ' + error.message, 'danger');
+                }
+            }
+
+            async regenerateQR(branchId) {
+                try {
+                    this.showAlert('Regenerando QR...', 'info');
+                    
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/regenerate-qr`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error regenerando QR');
+                    }
+
+                    this.showAlert('QR regenerado exitosamente', 'success');
+                    this.loadBranches();
+                } catch (error) {
+                    this.showAlert('Error regenerando QR: ' + error.message, 'danger');
+                }
+            }
+
+            showAlert(message, type) {
+                const container = document.getElementById('alertContainer');
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                container.innerHTML = '';
+                container.appendChild(alert);
+
+                // Auto-dismiss después de 5 segundos
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+
+            saveAIConfig() {
+                const config = {
+                    welcomeMessage: document.getElementById('welcomeMessage').value,
+                    menuMessage: document.getElementById('menuMessage').value,
+                    keywords: document.getElementById('keywords').value,
+                    aiPrompt: document.getElementById('aiPrompt').value,
+                    autoReply: document.getElementById('autoReply').checked
+                };
+
+                // Guardar en localStorage por ahora
+                localStorage.setItem('aiConfig', JSON.stringify(config));
+                
+                // Guardar prompt de IA en el servidor para cada sucursal
+                this.saveAIPromptToServer(config.aiPrompt);
+                
+                this.showAlert('Configuración de IA guardada exitosamente', 'success');
+            }
+
+            async saveAIPromptToServer(prompt) {
+                try {
+                    // Guardar prompt para cada sucursal
+                    const branches = ['branch-1', 'branch-2'];
+                    
+                    for (const branchId of branches) {
+                        const response = await fetch(`${this.baseURL}/branch/${branchId}/ai-prompt`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${this.token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ prompt: prompt })
+                        });
+
+                        if (!response.ok) {
+                            console.error(`Error guardando prompt para ${branchId}:`, response.statusText);
+                        }
+                    }
+                    
+                    console.log('Prompt de IA guardado en servidor');
+                } catch (error) {
+                    console.error('Error guardando prompt de IA:', error);
+                }
+            }
+
+            loadAIConfig() {
+                const savedConfig = localStorage.getItem('aiConfig');
+                if (savedConfig) {
+                    const config = JSON.parse(savedConfig);
+                    document.getElementById('welcomeMessage').value = config.welcomeMessage || '';
+                    document.getElementById('menuMessage').value = config.menuMessage || '';
+                    document.getElementById('keywords').value = config.keywords || '';
+                    document.getElementById('aiPrompt').value = config.aiPrompt || '';
+                    document.getElementById('autoReply').checked = config.autoReply !== false;
+                }
+            }
+
+            async savePhones(branchId) {
+                try {
+                    const orderPhone = document.getElementById(`orderPhone_${branchId}`).value;
+                    const complaintPhone = document.getElementById(`complaintPhone_${branchId}`).value;
+
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/phones`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            orderPhone: orderPhone,
+                            complaintPhone: complaintPhone
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error guardando teléfonos');
+                    }
+
+                    this.showAlert('Teléfonos guardados exitosamente', 'success');
+                } catch (error) {
+                    this.showAlert('Error guardando teléfonos: ' + error.message, 'danger');
+                }
+            }
+
+            downloadQR(branchId) {
+                try {
+                    // Buscar el QR en los datos actuales
+                    const branch = this.currentBranches?.find(b => b.branchId === branchId);
+                    if (!branch?.whatsapp?.qr_code) {
+                        this.showAlert('No hay QR disponible para descargar', 'warning');
+                        return;
+                    }
+
+                    // Crear un enlace temporal para descargar
+                    const link = document.createElement('a');
+                    link.href = `data:image/png;base64,${branch.whatsapp.qr_code}`;
+                    link.download = `whatsapp-qr-${branchId}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    this.showAlert('QR descargado exitosamente', 'success');
+                } catch (error) {
+                    this.showAlert('Error descargando QR: ' + error.message, 'danger');
+                }
+            }
+
+            testMessage(branchId) {
+                const phoneNumber = prompt('Ingresa el número de teléfono para probar (formato: 573001234567):');
+                if (!phoneNumber) return;
+                
+                const message = prompt('Ingresa el mensaje de prueba:', '¡Hola! Este es un mensaje de prueba desde FastWings 🍔');
+                if (!message) return;
+                
+                this.sendTestMessage(branchId, phoneNumber, message);
+            }
+
+            async sendTestMessage(branchId, phoneNumber, message) {
+                try {
+                    this.showAlert('Enviando mensaje de prueba...', 'info');
+                    
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/send-message`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            to: phoneNumber + '@c.us',
+                            message: message
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error enviando mensaje');
+                    }
+
+                    this.showAlert('Mensaje de prueba enviado exitosamente', 'success');
+                } catch (error) {
+                    this.showAlert('Error enviando mensaje de prueba: ' + error.message, 'danger');
+                }
+            }
+
+            async configureHuggingFace() {
+                try {
+                    const apiKey = document.getElementById('huggingFaceApiKey').value;
+                    const modelName = document.getElementById('huggingFaceModel').value;
+                    const enabled = document.getElementById('huggingFaceEnabled').checked;
+
+                    this.showAlert('Configurando Hugging Face...', 'info');
+
+                    const response = await fetch(`${this.baseURL}/ai/configure-huggingface`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            apiKey: apiKey || null,
+                            modelName: modelName,
+                            enabled: enabled
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error configurando Hugging Face');
+                    }
+
+                    this.showAlert('Hugging Face configurado exitosamente', 'success');
+                } catch (error) {
+                    this.showAlert('Error configurando Hugging Face: ' + error.message, 'danger');
+                }
+            }
+
+            async testHuggingFace() {
+                try {
+                    const testMessage = prompt('Ingresa un mensaje para probar la IA:', 'Hola, ¿qué hamburguesas tienen?');
+                    if (!testMessage) return;
+
+                    this.showAlert('Probando IA...', 'info');
+
+                    // Simular una respuesta de IA
+                    const response = await fetch(`${this.baseURL}/ai/test-response`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: testMessage,
+                            branchId: 'branch-1'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error probando IA');
+                    }
+
+                    alert(`Respuesta de la IA:\n\n${data.response}`);
+                    this.showAlert('Prueba de IA completada', 'success');
+                } catch (error) {
+                    this.showAlert('Error probando IA: ' + error.message, 'danger');
+                }
+            }
+
+            async loadPhoneNumbers() {
+                try {
+                    const branches = ['branch-1', 'branch-2']; // Sucursales fijas
+                    
+                    for (const branchId of branches) {
+                        const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/phones`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            
+                            // Actualizar los campos en el DOM si existen
+                            const orderPhoneInput = document.getElementById(`orderPhone-${branchId}`);
+                            const complaintPhoneInput = document.getElementById(`complaintPhone-${branchId}`);
+                            
+                            if (orderPhoneInput) orderPhoneInput.value = data.data.orderPhone || '';
+                            if (complaintPhoneInput) complaintPhoneInput.value = data.data.complaintPhone || '';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error cargando teléfonos:', error);
+                }
+            }
+
+            async savePhoneNumbers(branchId) {
+                try {
+                    const orderPhone = document.getElementById(`orderPhone-${branchId}`).value;
+                    const complaintPhone = document.getElementById(`complaintPhone-${branchId}`).value;
+                    
+                    this.showAlert('Guardando teléfonos...', 'info');
+                    
+                    const response = await fetch(`${this.baseURL}/whatsapp/branch/${branchId}/phones`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            orderPhone: orderPhone,
+                            complaintPhone: complaintPhone
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error guardando teléfonos');
+                    }
+
+                    this.showAlert('Teléfonos guardados exitosamente en la base de datos', 'success');
+                } catch (error) {
+                    this.showAlert('Error guardando teléfonos: ' + error.message, 'danger');
+                }
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Inicializar el gestor de WhatsApp
+        const whatsappManager = new WhatsAppManager();
+    </script>
+</body>
+</html>

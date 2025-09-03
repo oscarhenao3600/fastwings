@@ -139,8 +139,8 @@ async function sendMessage(branchId, to, message) {
 async function sendMedia(branchId, to, filePath, caption) {
   const client = ensureReady(branchId);
   const chatId = to.includes('@') ? to : `${to.replace(/\D/g, '')}@c.us`;
-  const abs = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
-  const media = MessageMedia.fromFilePath(abs);
+    const abs = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+    const media = MessageMedia.fromFilePath(abs);
   console.log(`📤 Enviando media desde sucursal ${branchId} a ${chatId}`);
   return client.sendMessage(chatId, media, { caption: caption || '' });
 }
