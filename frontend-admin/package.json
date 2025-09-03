@@ -1,0 +1,19 @@
+{
+  "name": "fastwings-frontend",
+  "version": "1.0.0",
+  "description": "Frontend para FastWings WhatsApp System",
+  "scripts": {
+    "start": "npx http-server ../frontend-admin -p 3001 -o",
+    "dev": "npx http-server ../frontend-admin -p 3001 -o --cors",
+    "serve": "npx http-server ../frontend-admin -p 3001",
+    "build": "echo 'Frontend estático - no requiere build'",
+    "test": "echo 'No hay tests configurados'"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  },
+  "devDependencies": {},
+  "keywords": ["fastwings", "whatsapp", "frontend"],
+  "author": "FastWings Team",
+  "license": "MIT"
+}

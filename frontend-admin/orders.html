@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastWings - Pedidos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: #2c3e50;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: all 0.2s ease;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background: #34495e;
+        }
+        .sidebar .nav-link.active {
+            background: #3498db;
+            color: white;
+        }
+        .main-content {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .card-header {
+            background: #f8f9fa;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .order-item {
+            border-left: 4px solid #3498db;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: white;
+            border-radius: 4px;
+        }
+        .order-pending {
+            border-left-color: #f39c12;
+        }
+        .order-completed {
+            border-left-color: #27ae60;
+        }
+        .order-cancelled {
+            border-left-color: #e74c3c;
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-3">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-wings me-2"></i>FastWings
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="super.html">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a class="nav-link" href="menus.html">
+                            <i class="fas fa-utensils me-2"></i>Gestión de Menús
+                        </a>
+                        <a class="nav-link" href="whatsapp.html">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp
+                        </a>
+                        <a class="nav-link active" href="orders.html">
+                            <i class="fas fa-shopping-cart me-2"></i>Pedidos
+                        </a>
+                        <a class="nav-link" href="users.html">
+                            <i class="fas fa-users me-2"></i>Usuarios
+                        </a>
+                        <a class="nav-link" href="billing.html">
+                            <i class="fas fa-chart-line me-2"></i>Facturación
+                        </a>
+                        <a class="nav-link" href="config.html">
+                            <i class="fas fa-cog me-2"></i>Configuración
+                        </a>
+                        <hr class="text-white">
+                        <a class="nav-link" href="#" onclick="logout()">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>
+                            <i class="fas fa-shopping-cart me-2"></i>Gestión de Pedidos
+                        </h2>
+                        <div class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>
+                            <span id="currentDate"></span>
+                        </div>
+                    </div>
+
+                    <!-- Alertas -->
+                    <div id="alertContainer"></div>
+
+                    <!-- Filtros -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">Todos</option>
+                                        <option value="pending">Pendiente</option>
+                                        <option value="completed">Completado</option>
+                                        <option value="cancelled">Cancelado</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Sucursal</label>
+                                    <select class="form-select" id="branchFilter">
+                                        <option value="">Todas</option>
+                                        <option value="branch-1">Sucursal Principal</option>
+                                        <option value="branch-2">Sucursal Norte</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Fecha</label>
+                                    <input type="date" class="form-control" id="dateFilter">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button class="btn btn-primary" onclick="orderManager.filterOrders()">
+                                        <i class="fas fa-filter me-1"></i>Filtrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Pedidos -->
+                    <div id="ordersContainer">
+                        <!-- Los pedidos se cargarán dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class OrderManager {
+            constructor() {
+                this.baseURL = 'http://localhost:4000/api';
+                this.token = localStorage.getItem('token');
+                this.init();
+            }
+
+            init() {
+                if (!this.token) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                this.setCurrentDate();
+                this.loadOrders();
+            }
+
+            setCurrentDate() {
+                const now = new Date();
+                document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            async loadOrders() {
+                try {
+                    const response = await fetch(`${this.baseURL}/orders`, {
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Error cargando pedidos');
+                    }
+
+                    const data = await response.json();
+                    this.renderOrders(data.orders);
+                } catch (error) {
+                    this.showAlert('Error cargando pedidos: ' + error.message, 'danger');
+                }
+            }
+
+            renderOrders(orders) {
+                const container = document.getElementById('ordersContainer');
+                
+                if (!orders || orders.length === 0) {
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>No hay pedidos registrados.
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                orders.forEach(order => {
+                    const statusClass = this.getStatusClass(order.status);
+                    const statusText = this.getStatusText(order.status);
+                    
+                    html += `
+                        <div class="order-item ${statusClass}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">Pedido #${order.id}</h6>
+                                    <p class="mb-1"><strong>Cliente:</strong> ${order.customer}</p>
+                                    <p class="mb-1"><strong>Teléfono:</strong> ${order.phone}</p>
+                                    <p class="mb-1"><strong>Sucursal:</strong> ${this.getBranchName(order.branch)}</p>
+                                    <p class="mb-1"><strong>Fecha:</strong> ${new Date(order.createdAt).toLocaleString('es-ES')}</p>
+                                    
+                                    <div class="mt-2">
+                                        <strong>Productos:</strong>
+                                        <ul class="list-unstyled ms-3">
+                                            ${order.items.map(item => `
+                                                <li>• ${item.quantity}x ${item.name} - $${item.price}</li>
+                                            `).join('')}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="mb-2">
+                                        <span class="badge ${statusClass} status-badge">${statusText}</span>
+                                    </div>
+                                    <h5 class="text-primary">$${order.total.toFixed(2)}</h5>
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="orderManager.viewOrder('${order.id}')">
+                                            <i class="fas fa-eye me-1"></i>Ver
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success me-1" onclick="orderManager.completeOrder('${order.id}')">
+                                            <i class="fas fa-check me-1"></i>Completar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="orderManager.cancelOrder('${order.id}')">
+                                            <i class="fas fa-times me-1"></i>Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
+            getStatusClass(status) {
+                const statusMap = {
+                    'pending': 'order-pending',
+                    'completed': 'order-completed',
+                    'cancelled': 'order-cancelled'
+                };
+                return statusMap[status] || 'order-pending';
+            }
+
+            getStatusText(status) {
+                const statusMap = {
+                    'pending': 'Pendiente',
+                    'completed': 'Completado',
+                    'cancelled': 'Cancelado'
+                };
+                return statusMap[status] || status;
+            }
+
+            getBranchName(branchId) {
+                const branchMap = {
+                    'branch-1': 'Sucursal Principal',
+                    'branch-2': 'Sucursal Norte'
+                };
+                return branchMap[branchId] || branchId;
+            }
+
+            filterOrders() {
+                // Implementar filtros
+                this.showAlert('Filtros implementados próximamente', 'info');
+            }
+
+            viewOrder(orderId) {
+                this.showAlert(`Viendo pedido ${orderId}`, 'info');
+            }
+
+            completeOrder(orderId) {
+                if (!confirm('¿Confirmar que el pedido está completado?')) {
+                    return;
+                }
+                this.showAlert(`Pedido ${orderId} marcado como completado`, 'success');
+            }
+
+            cancelOrder(orderId) {
+                if (!confirm('¿Estás seguro de que quieres cancelar este pedido?')) {
+                    return;
+                }
+                this.showAlert(`Pedido ${orderId} cancelado`, 'warning');
+            }
+
+            showAlert(message, type) {
+                const container = document.getElementById('alertContainer');
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                container.innerHTML = '';
+                container.appendChild(alert);
+
+                // Auto-dismiss después de 5 segundos
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Inicializar el gestor de pedidos
+        const orderManager = new OrderManager();
+    </script>
+</body>
+</html>

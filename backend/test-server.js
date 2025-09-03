@@ -1,56 +1,124 @@
-const fetch = require('node-fetch');
+const express = require('express');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
-async function testServer() {
+const app = express();
+
+// Middlewares básicos
+app.use(cors());
+app.use(express.json());
+
+// Usuario fijo
+const USER = {
+    id: '68b32d3167697f77c914d377',
+    email: 'admin@fastwings.com',
+    role: 'super_admin'
+};
+
+// Middleware de autenticación
+const auth = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ error: 'Token no proporcionado' });
+    }
+    
     try {
-        console.log('🧪 Probando servidor...');
+        const decoded = jwt.verify(token, 'test-secret-key');
+        if (decoded.id === USER.id) {
+            req.user = USER;
+            next();
+        } else {
+            res.status(401).json({ error: 'Token inválido' });
+        }
+    } catch (error) {
+        res.status(401).json({ error: 'Token inválido' });
+    }
+};
+
+// Endpoint de prueba
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'Servidor funcionando correctamente' });
+});
+
+// Endpoint de conexión de WhatsApp (simulado)
+app.post('/api/whatsapp/branch/:branchId/connect', auth, async (req, res) => {
+    const { branchId } = req.params;
+    
+    console.log(`Iniciando conexión de WhatsApp para sucursal ${branchId}`);
+    
+    try {
+        // Simular proceso de conexión
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Test 1: Endpoint básico
-        const basicResponse = await fetch('http://localhost:4000/');
-        const basicData = await basicResponse.json();
-        console.log('✅ Endpoint básico:', basicData);
+        console.log(`Cliente WhatsApp creado para sucursal ${branchId}`);
         
-        // Test 2: Login
-        const loginResponse = await fetch('http://localhost:4000/api/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email: 'admin@fastwings.com',
-                password: 'admin123'
-            })
+        res.json({
+            success: true,
+            message: 'WhatsApp iniciado correctamente',
+            data: {
+                status: 'connecting',
+                branchId: branchId
+            }
         });
         
-        const loginData = await loginResponse.json();
-        console.log('✅ Login exitoso:', loginData);
-        
-        if (loginData.token) {
-            // Test 3: Dashboard con token
-            const dashboardResponse = await fetch('http://localhost:4000/api/admin/dashboard/stats', {
-                headers: {
-                    'Authorization': `Bearer ${loginData.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const dashboardData = await dashboardResponse.json();
-            console.log('✅ Dashboard data:', dashboardData);
-            
-            // Test 4: Branches
-            const branchesResponse = await fetch('http://localhost:4000/api/admin/branches', {
-                headers: {
-                    'Authorization': `Bearer ${loginData.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const branchesData = await branchesResponse.json();
-            console.log('✅ Branches data:', branchesData);
-        }
-        
     } catch (error) {
-        console.error('❌ Error en test:', error);
+        console.error(`Error conectando WhatsApp:`, error);
+        res.status(500).json({ 
+            error: 'Error conectando WhatsApp',
+            details: error.message 
+        });
     }
-}
+});
 
-testServer();
+// Endpoint de estado de WhatsApp
+app.get('/api/whatsapp/status', auth, (req, res) => {
+    const branches = [
+        {
+            branchId: 'branch-1',
+            branchName: 'Sucursal Centro',
+            whatsapp: {
+                status: 'disconnected',
+                is_connected: false,
+                qr_code: null,
+                phone_number: null,
+                last_connection: null
+            },
+            phones: {
+                orderPhone: '',
+                complaintPhone: ''
+            }
+        },
+        {
+            branchId: 'branch-2',
+            branchName: 'Sucursal Norte',
+            whatsapp: {
+                status: 'disconnected',
+                is_connected: false,
+                qr_code: null,
+                phone_number: null,
+                last_connection: null
+            },
+            phones: {
+                orderPhone: '',
+                complaintPhone: ''
+            }
+        }
+    ];
+    
+    res.json({
+        success: true,
+        branches: branches
+    });
+});
+
+// Puerto
+const PORT = 4000;
+
+app.listen(PORT, () => {
+    console.log(`🚀 Servidor de prueba iniciado en puerto ${PORT}`);
+    console.log(`📱 Endpoints disponibles:`);
+    console.log(`   GET  /api/test`);
+    console.log(`   POST /api/whatsapp/branch/:id/connect`);
+    console.log(`   GET  /api/whatsapp/status`);
+});
